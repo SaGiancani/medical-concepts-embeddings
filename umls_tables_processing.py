@@ -1,7 +1,7 @@
 import csv, datetime
 
 
-def cui_suis(mrconso_path = 'UMLS_data/MRCONSO.RRF'):
+def cui_strings(mrconso_path = 'UMLS_data/MRCONSO.RRF'):
     #
     #
     #-----------------------------------------------------------------------
@@ -49,7 +49,7 @@ def cui_suis(mrconso_path = 'UMLS_data/MRCONSO.RRF'):
     return dict_strings 
 
 
-def extracting_suis(cuis_list , dict_strings):
+def extracting_strings(cuis_list , dict_strings):
     #
     #
     #-------------------------------------------------------------------------------------------------
