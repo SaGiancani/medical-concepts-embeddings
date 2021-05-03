@@ -33,3 +33,7 @@ def mmi_to_cui(stop_value = 400, mmi_file = 'paper_seed.txt.out'):
             if (count==(stop_value)):
                 print(datetime.datetime.now().replace(microsecond=0)-a)
                 return list_cuis
+            
+def save_txt_dicts(my_dict, name_file):
+    with open(name_file, 'w') as fp:
+        fp.write('\n'.join(' +++++%s+++++ : %s\n' % (y, x) for x, y in zip(my_dict.values(), my_dict.keys())))
