@@ -1,39 +1,43 @@
-import csv, datetime
+import csv
+import pandas as pd
 
-def mmi_to_cui(stop_value = 400, mmi_file = 'paper_seed.txt.out'):
+
+def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
     #
     #
-    #-------------------------------------------------------------------------------------------------
-    # The method extracts CUIs from MMI list file coming from MetaMap, after metamapping text.
-    #
-    # It takes as input a stop_value which represents the seed's length and the path where the 
-    # mapped text is located.
-    # The method returns the first stop_value° CUIs, considering only the MMI lines: for briefness,
-    # the mapped concept with a CUI. 
-    # For best comprehension of metamapping, looking for MMI format on MetaMap guide.
-    #-------------------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------------------------------------
+    # The method is thought to solve the problem raised by the .csv format used by http://cui2vec.dbmi.hms.harvard.edu/
+    # with their cui2vec embedding. Gensim doesnt support csv format.
+    # 
+    # The method converts .csv embedding to a .txt one.
+    # It takes as input the path of the .csv input embedding and the path of the output .txt embedding.
+    #------------------------------------------------------------------------------------------------------------------
     #
     #
-    a = datetime.datetime.now().replace(microsecond=0)
-    list_cuis = []
-    count = 0
-    # Open the txt MMI file coming out MetaMap as a csv file
-    with open(mmi_file, newline='') as txt:
-    # Loop among the lines of the table
-        for line in txt.readlines():
-            # Split the rows on the separator |
-            array = line.split('|')
-            # Taking the block of the line representing the format
-            mmi_sign = array[1]
-            # If the format of the concept is MMI, the CUI is considered and appended on a list_cuis
-            if (mmi_sign == 'MMI'):
-                cui_item = array[4]
-                list_cuis.append(cui_item)
-                count+=1
-            if (count==(stop_value)):
-                print(datetime.datetime.now().replace(microsecond=0)-a)
-                return list_cuis
-            
+    csv_beam = pd.read_csv(path_load)
+
+    with open(path_save, 'w') as file:
+        file.write(''.join('%s %s\n' % (len(csv_beam.iloc[:,0]), (len(csv_beam.iloc[0])-1))))
+        for i in range(len(list(csv_beam.iloc[:, 0]))):
+            oldstr = str(list(csv_beam.iloc[i]))
+            # The squared brackets coming from the list and the ', chars from the python strings are deleted
+            newstr = oldstr.replace("]", "")
+            newstr = newstr.replace(",", "")
+            newstr = newstr.replace("[", "")
+            newstr = newstr.replace("'", "")
+            file.write(''.join('%s\n' % (newstr)))        
+        
+
+        
 def save_txt_dicts(my_dict, name_file):
+    #
+    #
+    #---------------------------------------------------------------------------------------------------------
+    # Creates a txt file filled with dictionaries. For readability, the key is highlighted by some '+' chars
+    #
+    # It takes as input the dictionary to save in the txt file, and a string for naming the file.
+    #---------------------------------------------------------------------------------------------------------
+    #
+    #
     with open(name_file, 'w') as fp:
         fp.write('\n'.join(' +++++%s+++++ : %s\n' % (y, x) for x, y in zip(my_dict.values(), my_dict.keys())))
