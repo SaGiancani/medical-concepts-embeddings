@@ -58,6 +58,24 @@ def count_occurred_labels(model, seed):
 
 
 
+def iov(d):
+    #
+    #
+    #----------------------------------------------------------------------------------------------------------   
+    # The method performs a count of inside vocabulary concepts.
+    #
+    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    # the output of take_most_similar method.
+    #
+    # It returns an integer of elements inside the embedding vocabulary
+    #----------------------------------------------------------------------------------------------------------
+    #
+    #
+    tmp = oov(d)
+    return len(d)-tmp
+    
+
+
 def mod_dcgs_hit(pos, neg, tmp, seeds, k_most_similar):
     #
     #
@@ -127,7 +145,7 @@ def occurred_labels(model, seed, k_most_similar=10):
     # embedding model and applies the DCGs measures. 
     # This method is used only on word embedding models.
     #
-    # It represents an extension of the occurred_words method.
+    # It represents an extension of the occurrence_words method.
     #
     # It takes as input the gensim KeyedVectors.word2vec model and a dictionary of CUIs and the
     # correspondent preferred and not preferred label, inside a list. 
@@ -172,7 +190,7 @@ def occurred_labels(model, seed, k_most_similar=10):
 
 
 
-def occurred_words(model, seeds, k_most_similar=10):
+def occurred_concept(model, seeds, k_most_similar=10):
     #
     #
     #----------------------------------------------------------------------------------------------------------------
@@ -240,12 +258,29 @@ def occurrence_word(model, seeds, k=10):
 
 
 
+def oov(d):
+    #
+    #
+    #----------------------------------------------------------------------------------------------------------   
+    # The method performs a count of OOV concepts.
+    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    # the output of take_most_similar method.
+    #
+    # It returns an integer of elements out of the embedding vocabulary 
+    #----------------------------------------------------------------------------------------------------------
+    #
+    #
+    o = [1 for i in list(d.values()) if (i[0][3]=='OOV') ]
+    return sum(o)
+
+
+    
 def percentage_dcg(d):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
     # The method performs a weighted count over the positive DCG values.
-    # It takes as input a list of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
     # the output of take_most_similar method.
     #-----------------------------------------------------------------------------------------------------------
     #
@@ -260,7 +295,7 @@ def pos_dcg(d):
     #
     #-----------------------------------------------------------------------------------------------------------
     # The method performs a sum over the positive DCG values.
-    # It takes as input a list of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
     # the output of take_most_similar method.
     #-----------------------------------------------------------------------------------------------------------
     #
