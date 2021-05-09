@@ -1,4 +1,5 @@
 import csv, datetime
+from collections import defaultdict
 
 
 def cui_strings(mrconso_path = 'UMLS_data/MRCONSO.RRF'):
@@ -49,6 +50,7 @@ def cui_strings(mrconso_path = 'UMLS_data/MRCONSO.RRF'):
     return dict_strings 
 
 
+
 def extracting_strings(cuis_list , dict_strings):
     #
     #
@@ -70,6 +72,48 @@ def extracting_strings(cuis_list , dict_strings):
             not_found.append(i)
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return dict_tmp, not_found
+
+
+
+def extracting_stys(cuis, mrsty_path= 'UMLS_data/MRSTY.RRF'):
+    #
+    #
+    #----------------------------------------------------------------------------------------------------------
+    # The method, taken a list of CUIs, returns a dictionary with CUIs as keys and a list of semantic types 
+    # (strings) as values.
+    #
+    # It takes as input a list of CUIs and the path of the MRSTY.RRF table, the table where you can find the 
+    # CUI related to correspondents semantic types.
+    #
+    # ex. line: C0000132|T126|A1.4.1.1.3.3|Enzyme|AT17739337|256|
+    #----------------------------------------------------------------------------------------------------------
+    #
+    #
+    # Timer for keeping track of the activity time
+    a = datetime.datetime.now().replace(microsecond=0)
+    tmp = defaultdict(list)
+    # Loop among the lines of the table
+    for i in cuis:
+        count = 0
+        with open(mrsty_path, newline='') as file:    
+            for line in file.readlines():
+                safety_count = count
+                # Split the rows on the separator |
+                array = line.split('|')
+                # Take the valuable data: 1st's element cui , the correspondent semantic type
+                cui = array[0]
+                sty = array[3]
+
+                if i == cui:
+                    tmp[cui].append(sty)
+                    count +=1
+            
+                elif (count>0) & (count==safety_count):
+                    break
+        
+    print(datetime.datetime.now().replace(microsecond=0)-a)
+    return tmp
+
     
     
 def related_cuis_concept(concept = 'C0024117', mrrel_path = 'UMLS_data/MRREL.RRF'):
@@ -80,7 +124,10 @@ def related_cuis_concept(concept = 'C0024117', mrrel_path = 'UMLS_data/MRREL.RRF
     # The method gets as input the MRREL.RRF table's path as well.
     # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
     #
-    # The method extract the second CUIs of the relation CUI1|REL|CUI2: the relation is doubled, so in 
+    # It represents the first step in building the seed_rel: 
+    # (MRREL) --FIRST_HOP--> (ordered list of CUIs)
+    #
+    # The method extracts the second CUIs of the relation CUI1|REL|CUI2: the relation is doubled, so in 
     # the table you can find the both ways of the relationship.
     #----------------------------------------------------------------------------------------------------
     #
@@ -112,3 +159,5 @@ def related_cuis_concept(concept = 'C0024117', mrrel_path = 'UMLS_data/MRREL.RRF
         print(len(list_tmp))
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return list_tmp 
+    
+
