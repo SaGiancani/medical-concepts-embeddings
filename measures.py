@@ -123,7 +123,7 @@ def mod_dcgs_nohit(pos, neg, k_most_similar):
 
 
 
-def neg_dcg(d):
+def neg_dcg(d, normalization = False):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -133,7 +133,11 @@ def neg_dcg(d):
     #-----------------------------------------------------------------------------------------------------------
     #
     #
-    return sum([j[1] for i in list(d.values()) for j in i])
+    a = sum([j[1] for i in list(d.values()) for j in i])
+    if normalization:
+        return a/len(d)
+    else:
+        return a
 
 
     
@@ -204,7 +208,7 @@ def occurred_concept(model, seeds, k_most_similar=10):
     #
     a = datetime.datetime.now().replace(microsecond=0)
     d = {}
-    print(len(seeds))
+    #print(len(seeds))
     for seed in seeds:
         most_similar_words, _ = take_most_similar(model, seed, seeds, k_most_similar=k_most_similar)
         d[seed] = most_similar_words
@@ -286,21 +290,27 @@ def percentage_dcg(d):
     #
     #
     c = [1 if (j[0]!=0) else 0 for i in list(d.values()) for j in i ]
+    #print('The normalization of percentage_dcg is: %s' % len(c))
     return sum(c)/len(c)
     
     
     
-def pos_dcg(d):
+def pos_dcg(d, normalization = False):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
     # The method performs a sum over the positive DCG values.
-    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed)
+    # and a boolean for normalization:
     # the output of take_most_similar method.
     #-----------------------------------------------------------------------------------------------------------
     #
     #
-    return sum([j[0] for i in list(d.values()) for j in i])
+    a = sum([j[0] for i in list(d.values()) for j in i])
+    if normalization:
+        return a/len(d)
+    else:
+        return a
 
         
     
