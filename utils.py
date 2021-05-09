@@ -35,9 +35,12 @@ def save_txt_dicts(my_dict, name_file):
     #---------------------------------------------------------------------------------------------------------
     # Creates a txt file filled with dictionaries. For readability, the key is highlighted by some '+' chars
     #
-    # It takes as input the dictionary to save in the txt file, and a string for naming the file.
+    # It takes as input 3 nested dictionaries to save in the txt file, and a string for naming the file.
     #---------------------------------------------------------------------------------------------------------
     #
     #
     with open(name_file, 'w') as fp:
-        fp.write('\n'.join(' +++++%s+++++ : %s\n' % (y, x) for x, y in zip(my_dict.values(), my_dict.keys())))
+        fp.write('\n'.join(' +++++%s+++++\n%s\n%s\n%s' % (x, y, k, z) for x, y, k, z in zip(my_dict.keys(),
+                                                                                            my_dict.values().keys(),
+                                                                                            my_dict.values().values().keys(), 
+                                                                                            my_dict.values().values().values())))
