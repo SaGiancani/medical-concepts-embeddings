@@ -145,6 +145,55 @@ DICT_STY = {'acab': 'Acquired Abnormality',
 
 
 
+def check_sty_mmi(proto_seed, dict_sty=DICT_STY):
+    #
+    #
+    #-------------------------------------------------------------------------------------------------------------
+    # The method takes as input the list of tuples coming from mmi_to_cui method: it has as first element a CUI
+    # and the correspondent list of semantic types, even if the CUI has only one semantic type.
+    #
+    # It performs a count of the semantic types of the concepts contained into the proto_seed (proto because there
+    # are no strings associated to the CUIs) and returns a dictionary with the semantic type MetaMap codes as keys
+    # and a tuple of the number of semantic types occurrences and the extended string of the type code.
+    #
+    # 
+    #-------------------------------------------------------------------------------------------------------------
+    #
+    #
+    tmp = []
+    tmp_d = {}
+    for i in proto_seed:
+        for j in i[1]:
+            tmp.append(j)
+            
+    decr = sorted(dict(Counter(tmp)).items(), key=lambda x: x[1], reverse= True)
+    for a in decr:
+        if a[0] in dict_sty.keys():
+            tmp_d[a[0]] = ((a[1], dict_sty[a[0]])) 
+            
+    return tmp_d
+
+
+
+def convert_sty_stymmi(dict_cui_sty, dict_sty=DICT_STY):
+    #
+    #
+    #---------------------------------------------------------------------------------------------------------------
+    # Convert the string extended semantic type to the abbreviation using the DICT_STY constant coming from MMI
+    # manual.
+    #---------------------------------------------------------------------------------------------------------------
+    #
+    #
+    tmp = dict_cui_sty.items()
+    for i,j in dict_sty.items():
+        for z, k in tmp:
+            for h, n in enumerate(k):
+                if n == j:
+                    k[h] = i
+    return tmp
+    
+
+
 def mmi_to_cui(stop_value = 400, mmi_file = 'paper_seed.txt.out', sty = False):
     #
     #
@@ -287,51 +336,3 @@ def mmi_lite_freetext(free_text_file = 'paper_seed.txt', sty = False):
             return cui_lite, oov_lite
 
         
-        
-def check_sty_mmi(proto_seed, dict_sty=DICT_STY):
-    #
-    #
-    #-------------------------------------------------------------------------------------------------------------
-    # The method takes as input the list of tuples coming from mmi_to_cui method: it has as first element a CUI
-    # and the correspondent list of semantic types, even if the CUI has only one semantic type.
-    #
-    # It performs a count of the semantic types of the concepts contained into the proto_seed (proto because there
-    # are no strings associated to the CUIs) and returns a dictionary with the semantic type MetaMap codes as keys
-    # and a tuple of the number of semantic types occurrences and the extended string of the type code.
-    #
-    # 
-    #-------------------------------------------------------------------------------------------------------------
-    #
-    #
-    tmp = []
-    tmp_d = {}
-    for i in proto_seed:
-        for j in i[1]:
-            tmp.append(j)
-            
-    decr = sorted(dict(Counter(tmp)).items(), key=lambda x: x[1], reverse= True)
-    for a in decr:
-        if a[0] in dict_sty.keys():
-            tmp_d[a[0]] = ((a[1], dict_sty[a[0]])) 
-            
-    return tmp_d
-
-
-
-def convert_sty_stymmi(dict_cui_sty, dict_sty=DICT_STY):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------------
-    # Convert the string extended semantic type to the abbreviation using the DICT_STY constant coming from MMI
-    # manual.
-    #---------------------------------------------------------------------------------------------------------------
-    #
-    #
-    tmp = dict_cui_sty.items()
-    for i,j in dict_sty.items():
-        for z, k in tmp:
-            for h, n in enumerate(k):
-                if n == j:
-                    k[h] = i
-    return tmp
-    
