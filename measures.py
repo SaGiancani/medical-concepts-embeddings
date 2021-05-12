@@ -123,7 +123,7 @@ def mod_dcgs_nohit(pos, neg, k_most_similar):
 
 
 
-def neg_dcg(d, normalization = False):
+def neg_dcg(d, normalization = False, k=1):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -135,7 +135,7 @@ def neg_dcg(d, normalization = False):
     #
     a = sum([j[1] for i in list(d.values()) for j in i])
     if normalization:
-        return a/len(d)
+        return a/(len(d)*k)
     else:
         return a
 
@@ -163,6 +163,7 @@ def occurred_labels(model, seed, k_most_similar=10):
     # Starting time
     a = datetime.datetime.now().replace(microsecond=0)
     dict_ = {}
+    new_seed = []
     # The several lists of the CUIs are flattened into a unique list.
     newlist = [item for items in seed.values() for item in items]
     # Cycling on dictionary: the keys are CUIs and the values are lists of strings (labels)
@@ -177,20 +178,25 @@ def occurred_labels(model, seed, k_most_similar=10):
             
             # Isolating positiveDCG values for the sum 
             pos = [i[0] for i in most_similar_words]
+
             # If exists already a positiveDCG value more the actual in the loop, the if is skipped
             # otherwise it is substitued 
-            if t<(sum(pos)):
+            if (t<(sum(pos)))|((t==(sum(pos)))&(most_similar_words[0][3]!='OOV')):
                 t = sum(pos)
                 supp = j
                 tmp = most_similar_words
-                
+            #print('{:s}, {:f}\n'.format(supp, t))
+            #print(str(tmp)+'\n')
+        #print('\nPicked choice: {:s}, {:f}, {:s}\n'.format(supp, t, tmp[0][3]))        
         # Storing a 4-tuple with the biggest value of posDCG, the correspondent negDCG, an array of k labels (the seed),
         # and the k-most similar words for the label, in a dictionary, using the correspondent CUI as key                 
         dict_[k] = tmp
+        new_seed.append(supp)
                 
     # Printing the total time
     print(datetime.datetime.now().replace(microsecond=0)-a)
-    return dict_
+    return dict_, new_seed
+
 
 
 
@@ -279,7 +285,7 @@ def oov(d):
 
 
     
-def percentage_dcg(d):
+def percentage_dcg(d, k=1):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -291,11 +297,11 @@ def percentage_dcg(d):
     #
     c = [1 if (j[0]!=0) else 0 for i in list(d.values()) for j in i ]
     #print('The normalization of percentage_dcg is: %s' % len(c))
-    return sum(c)/len(c)
+    return sum(c)/(len(d)*k)
     
     
     
-def pos_dcg(d, normalization = False):
+def pos_dcg(d, normalization = False, k=1):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -308,7 +314,7 @@ def pos_dcg(d, normalization = False):
     #
     a = sum([j[0] for i in list(d.values()) for j in i])
     if normalization:
-        return a/len(d)
+        return a/(len(d)*k)
     else:
         return a
 
