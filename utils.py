@@ -1,5 +1,6 @@
 import csv
 import pandas as pd
+import pickle
 
 
 def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
@@ -33,11 +34,35 @@ def extract_w2v_vocab(model):
     #
     #---------------------------------------------------------------------------------------------------------
     #The method returns a list of the vocabulary of the w2v model, taking the last as input
-    #---------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
     #
     #
     return list(model.vocab.keys())
 
+
+def inputs_load(filename):
+    #
+    #
+    #---------------------------------------------------------------------------------------------------------
+    # The method allows to load pickle extension files, preserving python data_structure formats
+    #---------------------------------------------------------------------------------------------------------
+    #
+    #
+    with open(filename + '.pickle', 'rb') as f:
+        return pickle.load(f)
+    
+    
+def inputs_save(inputs, filename):
+    #
+    #
+    #---------------------------------------------------------------------------------------------------------
+    # The method allows to save python data_structure preserving formats
+    #---------------------------------------------------------------------------------------------------------
+    #
+    #
+    with open(filename+'.pickle', 'wb') as f:
+        pickle.dump(inputs, f, pickle.HIGHEST_PROTOCOL)
+        
         
 def save_txt_dicts(my_dict, name_file):
     #
