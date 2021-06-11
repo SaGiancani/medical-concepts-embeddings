@@ -26,7 +26,17 @@ def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='.
             newstr = newstr.replace("[", "")
             newstr = newstr.replace("'", "")
             file.write(''.join('%s\n' % (newstr)))        
-        
+            
+            
+def extract_w2v_vocab(model):
+    #
+    #
+    #---------------------------------------------------------------------------------------------------------
+    #The method returns a list of the vocabulary of the w2v model, taking the last as input
+    #---------------------------------------------------------------------------------------
+    #
+    #
+    return list(model.vocab.keys())
 
         
 def save_txt_dicts(my_dict, name_file):
