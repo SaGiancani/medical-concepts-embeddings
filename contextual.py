@@ -23,6 +23,8 @@ def tokenize_words(tokenizer, sentences, start, stop, attention_mask = False):
     a = datetime.datetime.now().replace(microsecond=0)
     
     # Initialize a checkpoint
+    print('Start: '+str(start))
+    print('Stop: '+str(stop))
     if len(sentences[start:stop])>10:
         checkpoint = round(len(sentences[start:stop])/10)
         print(checkpoint)
@@ -55,7 +57,7 @@ def tokenize_words(tokenizer, sentences, start, stop, attention_mask = False):
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return inputs
 
-def context2static(model, inputs, vocabs, start, stop, name = 'bio_bert', n_layer= 5):
+def context2static(model, inputs, vocabs, start, stop, name = 'bio_bert', n_layer= 5, log = None):
     #
     #
     #------------------------------------------------------------------------------------------------------------
@@ -85,6 +87,9 @@ def context2static(model, inputs, vocabs, start, stop, name = 'bio_bert', n_laye
         # Initialize a checkpoint for printing
         if len(inputs)>100:
             checkpoint = np.round(len(inputs)/100)
+            print(checkpoint)
+            if log is not None:
+                log.info('Every ' + str(checkpoint) + ' elements, an info message is printed in the log')                
         else:
             checkpoint = 1
         # Using all the layers for output, the model returns a modeling_outputs object 
@@ -92,17 +97,27 @@ def context2static(model, inputs, vocabs, start, stop, name = 'bio_bert', n_laye
         for i, inp in enumerate(inputs):
             layer = model(inp.unsqueeze(0))[-1][n_layer]
             #tmp_arr.append(layer.detach().squeeze().numpy().mean(axis=0))
-            newstr = str(layer.detach().squeeze().numpy().mean(axis=0).tolist())
+            newstr = str(layer.detach().squeeze().numpy().mean(axis=0).tolist())[1:-1]
+            
+            # The following approach is too computationally expensive
+            #tmp = str(newstr)
+            #tmp = ''
+            #for j in newstr:
+            #    tmp = tmp + str(round(j,6)) + ' '   
             #print(np.shape(layer.detach().squeeze().numpy()))
-            #newstr = newstr.replace("]", "")
-            #newstr = newstr.replace(",", "")
-            #newstr = newstr.replace("[", "")
-            #newstr = newstr.replace("'", "")
+            
+            newstr = newstr.replace(",", "")
             file.write(''.join('%s %s\n' % (vocabs[i], newstr))) 
             # Print checkpoint
             if ((i+1)%checkpoint == 0):
                 print('The layer extraction is at ' + 
                       str(((i+1)/len(inputs))*100) +
                       '%: the '+ str(i+1) +'th element'+ '\n')
+                if log is not None:
+                    log.info('The layer extraction is at ' +
+                             str(((i+1)/len(inputs))*100) +
+                             '%: the '+ str(i+1) +'th element')
+                    log.info(str(datetime.datetime.now().replace(microsecond=0)-a) + 
+                             ' total time for ' + str(((i+1)/len(inputs))*100) + '%\n')
         print(datetime.datetime.now().replace(microsecond=0)-a)
 
