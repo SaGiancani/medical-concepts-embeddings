@@ -1,5 +1,7 @@
 import argparse, contextual, datetime, logging, sys, utils
 
+from itertools import product
+from multiprocessing import Pool
 from transformers import AutoModel, AutoTokenizer
 
 
@@ -53,8 +55,8 @@ def build_static_matrix(start_index, stop_index, name, layer):
     a = datetime.datetime.now().replace(microsecond=0)
     tmp = contextual.context2static(model, inputs['input_ids'],
                                     vocabs, start_index, stop_index,
-                                    name=name, n_layer = layer)
-    logger.info('The context2static converting of matrix \"'+ str(start)+'--'+str(stop)+name +'\" time process is: ' +str(datetime.datetime.now().replace(microsecond=0)-a) + '\n')
+                                    name=name, n_layer = layer, log=logger)
+    logger.info('The context2static converting of matrix \"'+ str(start_index)+'--'+str(stop_index)+name +'\" time process is: ' +str(datetime.datetime.now().replace(microsecond=0)-a) + '\n')
     
 
 if __name__ == '__main__':
@@ -62,20 +64,50 @@ if __name__ == '__main__':
     # Parsing values for fast and intuitive launch of the script: 
     # start_index, stop_index, name of the saved file and number of layer are inserted by command line.
     parser = argparse.ArgumentParser(description='Launching staticizing processing')
-    parser.add_argument('--start', dest='start_index', type=int, 
-                        required=True, help='The start index value')
-    parser.add_argument('--stop', dest='stop_index', type=int,
-                        required=True, help='The stop index value')
-    parser.add_argument('--n', dest='name', type=str, default = 'bio_bert',
-                        required=False, help='The choosen layer from where extracting the feature vector')
-    parser.add_argument('--l', dest='layer', type=int,
-                        required=True, help='The choosen layer from where extracting the feature vector')
+    parser.add_argument('--start', 
+                        dest='start_index',
+                        type=int, 
+                        required=True,
+                        help='The start index value')
+    parser.add_argument('--stop',
+                        dest='stop_index',
+                        type=int,
+                        required=True,
+                        help='The stop index value')
+    parser.add_argument('--n',
+                        dest='name',
+                        type=str,
+                        default = 'bio_bert',
+                        required=False,
+                        help='The choosen layer from where extracting the feature vector')
+    parser.add_argument('--l',
+                        dest='layer',
+                        type=int,
+                        required=True,
+                        help='The choosen layer from where extracting the feature vector')
+    parser.add_argument('--p',
+                        dest='processes',
+                        type=int,
+                        default = 1,
+                        required=False,
+                        help='The choosen number of parallel processes')
     args = parser.parse_args()
     
     # Check on quality of inserted data
     assert args.start_index>=0, "The start index has to be bigger than 0"
+    assert ((args.stop_index-args.start_index)%args.processes)== 0, "Consider an interval of rows multiple of the number of chosen processes"
     assert args.layer>=0, "The layer has to be bigger than 0"
     assert args.stop_index>args.start_index, "The stop index has to be bigger than start index"
+    assert args.processes>0, "Number of processes has to be more than 0" 
+    
     
     # Launch of the main method
-    build_static_matrix(args.start_index, args.stop_index, args.name, args.layer)
+    if args.processes > 1:
+        interval = int((args.stop_index - args.start_index)/args.processes)
+        tmp = [(i*interval, i*interval+interval, args.name, args.layer) for i in range(args.processes)]
+        print(tmp)
+        with Pool(processes=args.processes) as pool:
+            pool.starmap(build_static_matrix, tmp) 
+        
+    elif args.processes == 1:
+        build_static_matrix(args.start_index, args.stop_index, args.name, args.layer)
