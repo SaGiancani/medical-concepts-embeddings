@@ -104,7 +104,7 @@ if __name__ == '__main__':
     # Launch of the main method
     if args.processes > 1:
         interval = int((args.stop_index - args.start_index)/args.processes)
-        tmp = [(i*interval, i*interval+interval, args.name, args.layer) for i in range(args.processes)]
+        tmp = [(i*interval + args.start_index, (i*interval + args.start_index)+interval, args.name, args.layer) for i in range(args.processes)]
         print(tmp)
         with Pool(processes=args.processes) as pool:
             pool.starmap(build_static_matrix, tmp) 
