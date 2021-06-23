@@ -63,6 +63,28 @@ def inputs_save(inputs, filename):
     with open(filename+'.pickle', 'wb') as f:
         pickle.dump(inputs, f, pickle.HIGHEST_PROTOCOL)
         
+
+def polish_relations(tmpd):
+    #
+    #
+    #---------------------------------------------------------------------------------------------------------
+    # Accessory method of the concepts_related_to_concept method. It takes a dictionary with CUIs as keys and
+    # lists of relationships RELA as values.
+    #
+    # It discards the duplicates and the empty RELAs indicated as '': returns a polished dictionary.
+    #---------------------------------------------------------------------------------------------------------
+    #
+    #
+    dict_tmp = {}
+    for k, v in tmpd.items():
+        set_t = set(v)
+        try:
+            dict_tmp[k] = list(set_t.remove(''))
+        except:
+            dict_tmp[k] = list(set_t)
+            continue
+    return dict_tmp
+        
         
 def save_txt_dicts(my_dict, name_file):
     #
