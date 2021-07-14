@@ -1,4 +1,4 @@
-import csv
+import csv, datetime, logging, sys
 import pandas as pd
 import pickle
 
@@ -101,3 +101,18 @@ def save_txt_dicts(my_dict, name_file):
                                                                                             my_dict.values().keys(),
                                                                                             my_dict.values().values().keys(), 
                                                                                             my_dict.values().values().values())))
+
+        
+def setup_custom_logger(name):
+    PATH_LOGS = './logs/log_'
+    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
+                                  datefmt='%Y-%m-%d %H:%M:%S')
+    handler = logging.FileHandler(PATH_LOGS+str(datetime.datetime.now().replace(microsecond=0))+'.txt', mode='w')
+    handler.setFormatter(formatter)
+    screen_handler = logging.StreamHandler(stream=sys.stdout)
+    screen_handler.setFormatter(formatter)
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    logger.addHandler(screen_handler)
+    return logger

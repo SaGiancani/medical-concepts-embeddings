@@ -1,34 +1,13 @@
-import argparse, contextual, datetime, logging, sys, utils
+import argparse, contextual, datetime, utils
 
 from itertools import product
 from multiprocessing import Pool
 from transformers import AutoModel, AutoTokenizer
 
 
-def setup_custom_logger(name):
-    PATH_LOGS = './logs/log_'
-    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
-                                  datefmt='%Y-%m-%d %H:%M:%S')
-    handler = logging.FileHandler(PATH_LOGS+str(datetime.datetime.now().replace(microsecond=0))+'.txt', mode='w')
-    handler.setFormatter(formatter)
-    screen_handler = logging.StreamHandler(stream=sys.stdout)
-    screen_handler.setFormatter(formatter)
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
-    logger.addHandler(screen_handler)
-    return logger
-'''
->>> logger = setup_custom_logger('myapp')
->>> logger.info('This is a message!')
-2015-02-04 15:07:12 INFO     This is a message!
->>> logger.error('Here is another')
-2015-02-04 15:07:30 ERROR    Here is another'''
-
-
 def build_static_matrix(start_index, stop_index, name, layer):
     # Logging instation for next time printing
-    logger = setup_custom_logger('myapp')
+    logger = utils.setup_custom_logger('myapp')
         
     # Load the vocabulary of PMC-w2v embedding: for avoiding the loading of model via gensim, 
     # a list with all the words of vocabulary was previously computed and stored
