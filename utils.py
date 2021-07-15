@@ -48,9 +48,11 @@ def inputs_load(filename):
     #---------------------------------------------------------------------------------------------------------
     #
     #
+    a = datetime.datetime.now().replace(microsecond=0)
     with open(filename + '.pickle', 'rb') as f:
-        return pickle.load(f)
-    
+        t = pickle.load(f)
+        print(datetime.datetime.now().replace(microsecond=0)-a)
+        return t    
     
 def inputs_save(inputs, filename):
     #
