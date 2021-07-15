@@ -13,7 +13,7 @@ def build_static_matrix(start_index, stop_index, name, layer):
     # a list with all the words of vocabulary was previously computed and stored
     #vocabs = utils.extract_w2v_vocab(w2v)
     a = datetime.datetime.now().replace(microsecond=0)
-    vocabs = utils.inputs_load('PMC_w2v_vocabs')
+    vocabs = utils.inputs_load('Utilities/PMC_w2v_vocabs')
     logger.info('PMC-w2v vocabulary (previously stored) is loaded in ' 
                 +str(datetime.datetime.now().replace(microsecond=0)-a) + '\n')    
     
@@ -58,7 +58,7 @@ if __name__ == '__main__':
                         type=str,
                         default = 'bio_bert',
                         required=False,
-                        help='The choosen layer from where extracting the feature vector')
+                        help='The choosen filename')
     parser.add_argument('--l',
                         dest='layer',
                         type=int,
