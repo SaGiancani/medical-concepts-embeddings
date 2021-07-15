@@ -1,13 +1,17 @@
 import csv, datetime, utils
 from collections import defaultdict
 
+MRREL = 'UMLS_data/MRREL.RRF'
+MRCONSO = 'UMLS_data/MRCONSO.RRF'
+MRSTY = 'UMLS_data/MRSTY.RRF'
+DICT_CONSO = 'Utilities/dict_conso'
 
-def count_relationships(mrrel_path = 'UMLS_data/MRREL.RRF', rel_type = 'RELA'):
+def count_relationships(mrrel_path = MRREL, rel_type = 'RELA'):
     #
     #
     #----------------------------------------------------------------------------------------------------
-    # Accessory method for computing the number of particular relationships inside UMLS.
-    # The method get just the MRREL's path.
+    # Accessory method for computing the number of particular relationships inside whole UMLS.
+    # The method get just the MRREL's path and the kind of relation considered (RELA or REL).
     #
     # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
     #
@@ -24,7 +28,7 @@ def count_relationships(mrrel_path = 'UMLS_data/MRREL.RRF', rel_type = 'RELA'):
             array = line.split('|')
             if rel_type == 'RELA':
                 # Considering the RELA elements
-                rel = array[8]
+                rel = array[7]
             if rel_type == 'REL':
                 # Considering the REL elements
                 rel = array[3]
@@ -36,17 +40,60 @@ def count_relationships(mrrel_path = 'UMLS_data/MRREL.RRF', rel_type = 'RELA'):
 
 
 
-def concepts_related_to_concept(mrrel_path = 'UMLS_data/MRREL.RRF', 
+def count_pairs(relations, mrrel_path = MRREL):
+    #
+    #
+    #----------------------------------------------------------------------------------------------------
+    # The method takes a list of relations and the path of MRREL table by UMLS
+    # 
+    # Create a dictionary of relations -as keys-, and the pairs -as tuples- of CUIs linked by those
+    # relations
+    #
+    # The method gets as input the MRREL.RRF table's path as well.
+    # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
+    #
+    #----------------------------------------------------------------------------------------------------
+    #
+    #
+    a = datetime.datetime.now().replace(microsecond=0)
+    tmpd = defaultdict(list)
+    # Open the RFF table
+    with open(mrrel_path, newline='') as file:
+    # Loop among the lines of the table
+        for line in file.readlines():
+            # Split the rows on the separator |
+            array = line.split('|')
+            if (array[7] in relations):
+                # Considering the RELA elements
+                pair_tuple = ((array[0], array[4]))
+                # Adding it into a set: only if it is not already present    
+                tmpd[array[7]].append(pair_tuple)
+        print(len(tmpd))
+    print(datetime.datetime.now().replace(microsecond=0)-a)
+    return tmpd
+
+
+
+def concepts_related_to_concept(mrrel_path = MRREL, 
                                 concept = 'C0024117', 
                                 two_way = True, 
-                                polishing_rels = True):
+                                polishing_rels = True,
+                                switch_key= 'con',
+                                extract_labels = False):
     #
     #
     #----------------------------------------------------------------------------------------------------
     # The method substitues the related_cuis_concept, adding even the relationship to the dict. 
     # 
-    # Create a dictionary of related CUIs to a concept -as keys-, given as input, and the RELA as lists 
-    # of strings.
+    # Create a dictionary of related CUIs to a concept (or relationships) -as keys-, given as input, and 
+    # the RELA as lists of strings (or concepts as a list of strings).
+    #
+    # The two modalities are choosen by the switch_key value: it may be 'con' for CUIs as keys and RELAs 
+    # as values or 'rel' for RELAs as keys and CUIs as values
+    #
+    # extract_labels represents a further switch which allows to augment the returned dictionary with
+    # labels -preferred and not-
+    #
     # The method gets as input the MRREL.RRF table's path as well.
     # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
     #
@@ -62,7 +109,6 @@ def concepts_related_to_concept(mrrel_path = 'UMLS_data/MRREL.RRF',
     a = datetime.datetime.now().replace(microsecond=0)
     tmpd = defaultdict(list)
     # Appending the concept which is looked for
-    tmpd[concept].append('')
     # Open the RFF table
     with open(mrrel_path, newline='') as file:
     # Loop among the lines of the table
@@ -72,28 +118,52 @@ def concepts_related_to_concept(mrrel_path = 'UMLS_data/MRREL.RRF',
             # Take the valuable data: 1st's element cui , 2nd's element cui
             cuione_item = array[0]
             cuitwo_item = array[4]
+            rela = array[7]
+            
+            if (switch_key == 'con') and not extract_labels:
+                key_one = cuitwo_item
+                key_two = cuione_item
+                value_one = rela
+                value_two = rela
+            
+            elif (switch_key == 'rel') | extract_labels:
+                key_one = rela
+                key_two = rela
+                value_one = cuitwo_item
+                value_two = cuione_item             
+
             # Check on CUI: if the string's CUI is not inside the dictionary 
             # yet, come in
             # Only one way implementation
             if (cuione_item == concept):
                 # Appending the CUIs inside the temporary list
-                tmpd[cuitwo_item].append(array[7])
+                tmpd[key_one].append(value_one)
             # Both way implementation    
             elif (cuitwo_item == concept) & two_way:
                 # Appending the CUIs inside the temporary list
-                tmpd[cuione_item].append(array[7])
+                tmpd[key_two].append(value_two)
+            
+    # If True, extracting labels -preferred and not- inside the method        
+    if extract_labels:
+        dict_conso = utils.inputs_load(DICT_CONSO)
+        cuis = list(set([i for k,v in tmpd.items() for i in v]))
+        h, _ = extracting_strings(cuis, dict_conso)
+        print(h)
+        print(tmpd)
+        tmpd = {k:{i:h[i]} for k,v in tmpd.items() for i in v}
+        switch_key = 'rel'
+
     # Discard duplicate relationships and the empty ones
     if polishing_rels:
-        return utils.polish_relations(tmpd)
-
-    #list(set(double_rel[i]))
+        return utils.polish_relations(tmpd, ty = switch_key)
+            
 
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return tmpd
 
 
     
-def cui_strings(mrconso_path = 'UMLS_data/MRCONSO.RRF'):
+def cui_strings(mrconso_path = MRCONSO):
     #
     #
     #-----------------------------------------------------------------------
@@ -142,6 +212,29 @@ def cui_strings(mrconso_path = 'UMLS_data/MRCONSO.RRF'):
 
 
 
+def discarding_labels_oov(emb_vocab, seed, stop = 100):
+    #
+    #
+    #-------------------------------------------------------------------------------------------------
+    # emb_vocab is a list containing the vocabulary of the analyzed embedding
+    # seed is the classic dictionary with CUIs as keys and labels (preferred or not) as values
+    # The method returns a polished seed, with only the labels contained inside the embedding vocabulary
+    #-------------------------------------------------------------------------------------------------
+    #
+    #
+    t = datetime.datetime.now().replace(microsecond=0)
+    new_dict = {}
+    for j, (k, v) in enumerate(seed.items()):
+        tmp = [i for i in v if i in emb_vocab ]
+        if (len(tmp)>0):
+            new_dict[k] = tmp 
+        if ((j+1)%(int(len(seed)/stop))==0):
+            print(str((int((j+1)/(len(seed)/stop)))*1)+'%')
+            print(datetime.datetime.now().replace(microsecond=0)-t)    
+    return new_dict
+
+
+
 def extracting_strings(cuis_list , dict_strings):
     #
     #
@@ -166,7 +259,7 @@ def extracting_strings(cuis_list , dict_strings):
 
 
 
-def extracting_stys(cuis, mrsty_path= 'UMLS_data/MRSTY.RRF'):
+def extracting_stys(cuis, mrsty_path= MRSTY):
     #
     #
     #----------------------------------------------------------------------------------------------------------
@@ -207,7 +300,7 @@ def extracting_stys(cuis, mrsty_path= 'UMLS_data/MRSTY.RRF'):
 
     
     
-def related_cuis_concept(concept = 'C0024117', mrrel_path = 'UMLS_data/MRREL.RRF'):
+def related_cuis_concept(concept = 'C0024117', mrrel_path = MRREL):
     #
     #
     #----------------------------------------------------------------------------------------------------
@@ -254,5 +347,15 @@ def related_cuis_concept(concept = 'C0024117', mrrel_path = 'UMLS_data/MRREL.RRF
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return list_tmp 
     
+
     
-    
+def seed_analogy_labels(seed_analog, seed_classic):
+    cuis = list(seed_classic.keys())
+    seed_analog_labels = {}
+    for k, v in seed_analog.items():
+        dict_ = {}
+        for i in v:
+            if i in cuis:
+                dict_[i] = seed_classic[i]
+        seed_analog_labels[k] = dict_
+    return seed_analog_labels
