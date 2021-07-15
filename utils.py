@@ -66,25 +66,33 @@ def inputs_save(inputs, filename):
         pickle.dump(inputs, f, pickle.HIGHEST_PROTOCOL)
         
 
-def polish_relations(tmpd):
+def polish_relations(tmpd, ty = 'con'):
     #
     #
     #---------------------------------------------------------------------------------------------------------
     # Accessory method of the concepts_related_to_concept method. It takes a dictionary with CUIs as keys and
     # lists of relationships RELA as values.
     #
+    # ty is the variable which represents the type of keys: 'con' if CUIs, 'rel' if RELAs 
+    #
     # It discards the duplicates and the empty RELAs indicated as '': returns a polished dictionary.
     #---------------------------------------------------------------------------------------------------------
     #
     #
-    dict_tmp = {}
-    for k, v in tmpd.items():
-        set_t = set(v)
-        try:
-            dict_tmp[k] = list(set_t.remove(''))
-        except:
-            dict_tmp[k] = list(set_t)
-            continue
+    if ty == 'con':
+        dict_tmp = {}
+        for k, v in tmpd.items():
+            set_t = set(v)
+            try:
+                dict_tmp[k] = list(set_t.remove(''))
+            except:
+                dict_tmp[k] = list(set_t)
+                continue
+                
+    elif ty == 'rel':
+        del tmpd['']
+        return tmpd
+    
     return dict_tmp
         
         
