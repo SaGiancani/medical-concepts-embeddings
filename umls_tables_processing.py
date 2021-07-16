@@ -139,19 +139,23 @@ def concepts_related_to_concept(mrrel_path = MRREL,
                 # Appending the CUIs inside the temporary list
                 tmpd[key_one].append(value_one)
             # Both way implementation    
-            elif (cuitwo_item == concept) & two_way:
+            elif (cuitwo_item == concept) & two_way: 
                 # Appending the CUIs inside the temporary list
                 tmpd[key_two].append(value_two)
             
     # If True, extracting labels -preferred and not- inside the method        
     if extract_labels:
+        time_extract = datetime.datetime.now().replace(microsecond=0)
         dict_conso = utils.inputs_load(DICT_CONSO)
         cuis = list(set([i for k,v in tmpd.items() for i in v]))
         h, _ = extracting_strings(cuis, dict_conso)
-        print(h)
-        print(tmpd)
-        tmpd = {k:{i:h[i]} for k,v in tmpd.items() for i in v}
+        l = {}
+        for rel,cuis in tmpd.items():
+            r = {i:h[i] for i in cuis}
+            l[rel] = r
         switch_key = 'rel'
+        tmpd = l
+        print('Extracting time: '+str(datetime.datetime.now().replace(microsecond=0)-time_extract))
 
     # Discard duplicate relationships and the empty ones
     if polishing_rels:
@@ -212,7 +216,7 @@ def cui_strings(mrconso_path = MRCONSO):
 
 
 
-def discarding_labels_oov(emb_vocab, seed, stop = 100):
+def discarding_labels_oov(emb_vocab, seed, stop = 200):
     #
     #
     #-------------------------------------------------------------------------------------------------
