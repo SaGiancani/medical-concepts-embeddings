@@ -2,7 +2,6 @@ import datetime
 import numpy as np
 
 
-
 def count_occurred_labels(model, seed):
     #
     #
@@ -76,6 +75,21 @@ def iov(d):
     
 
 
+def max_dcg(k_neighs, sub = 2):
+    #
+    #
+    #----------------------------------------------------------------------------------------------------------   
+    # Normalization factor for pos and neg DCG.
+    #
+    # The only input parameter is the value of k, for weighting the position.
+    #
+    # The method returns a value: it is the max possible DCG obtainable using given k
+    #----------------------------------------------------------------------------------------------------------   
+    #
+    #
+    return sum([1/np.math.log(i+sub,sub) for i in range(k_neighs)])
+    
+    
 def mod_dcgs_hit(pos, neg, tmp, seeds, k_most_similar):
     #
     #
