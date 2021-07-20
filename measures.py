@@ -137,7 +137,7 @@ def mod_dcgs_nohit(pos, neg, k_most_similar):
 
 
 
-def neg_dcg(d, normalization = False, k=1):
+def neg_dcg(d, normalization = False, norm_fact=1):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ def neg_dcg(d, normalization = False, k=1):
     #
     a = sum([j[1] for i in list(d.values()) for j in i])
     if normalization:
-        return a/(len(d)*k)
+        return a/(len(d)*norm_fact)
     else:
         return a
 
@@ -315,7 +315,7 @@ def percentage_dcg(d, k=1):
     
     
     
-def pos_dcg(d, normalization = False, k=1):
+def pos_dcg(d, normalization = False, norm_fact=1):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -328,7 +328,7 @@ def pos_dcg(d, normalization = False, k=1):
     #
     a = sum([j[0] for i in list(d.values()) for j in i])
     if normalization:
-        return a/(len(d)*k)
+        return a/(len(d)*norm_fact)
     else:
         return a
 
