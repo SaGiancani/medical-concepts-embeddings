@@ -77,7 +77,7 @@ def count_pairs(relations, mrrel_path = MRREL):
 def concepts_related_to_concept(mrrel_path = MRREL, 
                                 concept = 'C0024117', 
                                 two_way = True, 
-                                polishing_rels = True,
+                                polishing_rels = False,
                                 switch_key= 'con',
                                 extract_labels = False):
     #
@@ -148,6 +148,7 @@ def concepts_related_to_concept(mrrel_path = MRREL,
         time_extract = datetime.datetime.now().replace(microsecond=0)
         dict_conso = utils.inputs_load(DICT_CONSO)
         cuis = list(set([i for k,v in tmpd.items() for i in v]))
+        print(len(cuis))
         h, _ = extracting_strings(cuis, dict_conso)
         l = {}
         for rel,cuis in tmpd.items():
@@ -158,7 +159,9 @@ def concepts_related_to_concept(mrrel_path = MRREL,
         print('Extracting time: '+str(datetime.datetime.now().replace(microsecond=0)-time_extract))
 
     # Discard duplicate relationships and the empty ones
+    # This is tricky, because the '' relation has half of the CUIs
     if polishing_rels:
+        print('Relation \'\' discarded ')
         return utils.polish_relations(tmpd, ty = switch_key)
             
 
@@ -216,7 +219,7 @@ def cui_strings(mrconso_path = MRCONSO):
 
 
 
-def discarding_labels_oov(emb_vocab, seed, stop = 200):
+def discarding_labels_oov(emb_vocab, seed):
     #
     #
     #-------------------------------------------------------------------------------------------------
@@ -227,19 +230,16 @@ def discarding_labels_oov(emb_vocab, seed, stop = 200):
     #
     #
     t = datetime.datetime.now().replace(microsecond=0)
+    vemb = set(emb_vocab)
     new_dict = {}
-    for j, (k, v) in enumerate(seed.items()):
-        tmp = [i for i in v if i in emb_vocab ]
-        if (len(tmp)>0):
-            new_dict[k] = tmp 
-        if ((j+1)%(int(len(seed)/stop))==0):
-            print(str((int((j+1)/(len(seed)/stop)))*1)+'%')
-            print(datetime.datetime.now().replace(microsecond=0)-t)    
+    for cui, labels in seed.items():
+        new_dict[cui] = list(vemb.intersection(set(labels)))
+    print(datetime.datetime.now().replace(microsecond=0)-t)    
     return new_dict
 
 
 
-def extracting_strings(cuis_list , dict_strings):
+def extracting_strings(cuis_list , dict_strings = utils.inputs_load(DICT_CONSO)):
     #
     #
     #-------------------------------------------------------------------------------------------------
@@ -351,15 +351,3 @@ def related_cuis_concept(concept = 'C0024117', mrrel_path = MRREL):
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return list_tmp 
     
-
-    
-def seed_analogy_labels(seed_analog, seed_classic):
-    cuis = list(seed_classic.keys())
-    seed_analog_labels = {}
-    for k, v in seed_analog.items():
-        dict_ = {}
-        for i in v:
-            if i in cuis:
-                dict_[i] = seed_classic[i]
-        seed_analog_labels[k] = dict_
-    return seed_analog_labels
