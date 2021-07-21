@@ -40,14 +40,16 @@ def count_relationships(mrrel_path = MRREL, rel_type = 'RELA'):
 
 
 
-def count_pairs(relations, mrrel_path = MRREL):
+def count_pairs(relations, cuis_list = None, mrrel_path = 'UMLS_data/MRREL.RRF'):
     #
     #
     #----------------------------------------------------------------------------------------------------
-    # The method takes a list of relations and the path of MRREL table by UMLS
+    # The method takes a list of relations and the path of MRREL table by UMLS.
+    # The cuis_list input is not mandatory: it allows a further check for picking CUIs-pairs on the 
+    # presence inside a choosen seed.
     # 
     # Create a dictionary of relations -as keys-, and the pairs -as tuples- of CUIs linked by those
-    # relations
+    # relations. If cuis_list is not None, one of the two CUIs of the pair has to be present into the seed
     #
     # The method gets as input the MRREL.RRF table's path as well.
     # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
@@ -60,18 +62,29 @@ def count_pairs(relations, mrrel_path = MRREL):
     # Open the RFF table
     with open(mrrel_path, newline='') as file:
     # Loop among the lines of the table
-        for line in file.readlines():
-            # Split the rows on the separator |
-            array = line.split('|')
-            if (array[7] in relations):
-                # Considering the RELA elements
-                pair_tuple = ((array[0], array[4]))
-                # Adding it into a set: only if it is not already present    
-                tmpd[array[7]].append(pair_tuple)
+        if cuis_list:
+            for line in file.readlines():
+                # Split the rows on the separator |
+                array = line.split('|')
+                if (array[7] in relations) & ((array[0] in cuis_list)|(array[4] in cuis_list)):
+                    # Considering the RELA elements
+                    pair_tuple = ((array[0], array[4]))
+                    # Adding it into a set: only if it is not already present    
+                    tmpd[array[7]].append(pair_tuple)
+
+        if not cuis_list:
+            for line in file.readlines():
+                # Split the rows on the separator |
+                array = line.split('|')
+                if (array[7] in relations):
+                    # Considering the RELA elements
+                    pair_tuple = ((array[0], array[4]))
+                    # Adding it into a set: only if it is not already present    
+                    tmpd[array[7]].append(pair_tuple)
+                
         print(len(tmpd))
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return tmpd
-
 
 
 def concepts_related_to_concept(mrrel_path = MRREL, 
