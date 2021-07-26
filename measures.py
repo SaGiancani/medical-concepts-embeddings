@@ -298,7 +298,7 @@ def occurred_labels(model, seed, k_most_similar=10):
         # If there are no labels for computing occurrence, treat the concept as an OOV 
         if len(v) == 0:
             pos, neg = [], []
-            pos, neg = measures.mod_dcgs_nohit(pos, neg, k_most_similar)
+            pos, neg = mod_dcgs_nohit(pos, neg, k_most_similar)
             # Data preparation for output: list of 4-tuple with the list of posDCG, negDCG, a list of 
             # k-times duplicated seed, a list of k-times duplicated 'OOV'.
             tmp = list(map(lambda x, y, z, w:(x,y,z,w), 
