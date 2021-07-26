@@ -1,6 +1,6 @@
 import csv, datetime, logging, sys
 import pandas as pd
-import pickle
+import pickle  
 
 
 def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
@@ -66,6 +66,23 @@ def inputs_save(inputs, filename):
         pickle.dump(inputs, f, pickle.HIGHEST_PROTOCOL)
         
 
+def mapcount(filename):
+    #
+    #
+    #---------------------------------------------------------------------------------------------------------
+    # Count the file lines .
+    #---------------------------------------------------------------------------------------------------------
+    #
+    #
+    f = open(filename, "r+")
+    buf = mmap.mmap(f.fileno(), 0)
+    lines = 0
+    readline = buf.readline
+    while readline():
+        lines += 1
+    return lines
+
+        
 def polish_relations(tmpd, ty = 'con'):
     #
     #
