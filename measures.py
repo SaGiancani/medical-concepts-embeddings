@@ -1,5 +1,61 @@
-import datetime
+import datetime, utils
 import numpy as np
+
+
+def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, emb_type = 'cui'):
+    ab = datetime.datetime.now().replace(microsecond=0)
+    #print(len(K_umls[relation]))
+    #K_umls[relation] = list(set(K_umls[relation]))
+    #print(len(K_umls[relation]))
+    #print(len(L_umls[relation]))
+    #L_umls[relation] = list(set(L_umls[relation]))
+    #print(len(L_umls[relation]))
+    storing_list = []
+    oov = []
+    count = 0
+    
+    if (0 in np.shape(L_umls)) | (0 in np.shape(K_umls)):
+        return storing_list
+    
+    if (len(L_umls)%2)==0:
+        length = len(L_umls)
+    else:
+        length = len(L_umls) + 1
+    
+    b = datetime.datetime.now().replace(microsecond=0)
+    for concept_L in L_umls:
+        temporary = [concept_L[0], concept_L[1]]
+        for concept_K in K_umls:
+            temporary_ = temporary + [concept_K[0], concept_K[1]]
+            if concept_L != concept_K:
+                #if len(check)==0:
+                storing_list = cos3add(concept_K, concept_L, model, k_most_similar, storing_list)
+                
+        count +=1
+        if (count%int(np.floor(length/20)) == 0):
+            if logger:
+                logger.info(str(datetime.datetime.now().replace(microsecond=0)-b))
+                logger.info('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
+            print(datetime.datetime.now().replace(microsecond=0)-b)
+            print('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
+            b = datetime.datetime.now().replace(microsecond=0)
+    #model.wv.most_similar(positive=["king", "woman"], negative=["man"], topn = 5)
+    #vec1, vec2, vec3 = model.wv["king"], model.wv["man"], model.wv["woman"]
+    #result = model.similar_by_vector(vec1 - vec2 + vec3, topn=5)
+    if logger:
+        logger.info(str(datetime.datetime.now().replace(microsecond=0)-ab))
+    print(datetime.datetime.now().replace(microsecond=0)-ab) 
+    return storing_list
+        
+
+def cos3add(concept_K, concept_L, model, k_most_similar, storing_list):
+    #if len(check)==0:
+    tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[0]], negative=[concept_L[1]], topn=k_most_similar)))[0]
+    if concept_K[1] in tmp:
+        storing_list.append((concept_K, concept_L, 1))
+    else:
+        storing_list.append((concept_K, concept_L, 0))
+    return storing_list
 
 
 def count_occurred_labels(model, seed):
@@ -56,7 +112,6 @@ def count_occurred_labels(model, seed):
     return dict_
 
 
-
 def iov(d):
     #
     #
@@ -73,6 +128,61 @@ def iov(d):
     tmp = oov(d)
     return len(d)-tmp
     
+
+def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None): 
+    # Timer started
+    ab = datetime.datetime.now().replace(microsecond=0)
+    # Extraction Vemb
+    Vemb = np.array(list(utils.extract_w2v_vocab(model)))
+    # Changing format to the two lists, K_umls and L_umls
+    print(np.shape(np.array(list(zip(*L_umls_rel)))))
+    l_x = np.array(list(zip(*L_umls_rel))[0])
+    l_y = np.array(list(zip(*L_umls_rel))[1])
+    l_stacked = np.stack((l_x, l_y))
+    #d = np.array(list(second_l))
+    k_x = np.array(list(zip(*K_umls_rel))[0])
+    k_y = np.array(list(zip(*K_umls_rel))[1])
+
+    k_stacked = np.stack((k_x, k_y))
+    stacked = [l_stacked, k_stacked]
+
+    # Extracting indeces of Vemb, sorting values in growing way.
+    index = np.argsort(Vemb)
+    # Sorting Vemb in a growing way. I dont understand the meaning with strings
+    sorted_Vemb = Vemb[index]
+    q = []
+    # Making presence masks for discarding pairs oov by the Vemb 
+    for j in [[l_x, l_y], [k_x, k_y]]:
+        temp = []
+        for i in j:
+            sorted_index_i = np.searchsorted(sorted_Vemb, i)
+            #print(list(sorted_index_lx)[:20])
+            #print(len(sorted_index_lx))
+            yindex = np.take(index, sorted_index_i, mode="clip")
+            #print(list(yindex)[:20])
+            mask = Vemb[yindex] != i
+            #print(list(mask)[:20])
+            array_ids = np.where(mask)
+            tmp = array_ids[0].tolist()
+            temp = temp + tmp
+            #print(np.shape(array_ids))
+            #result = np.ma.array(yindex, mask=mask)
+        q.append(list(set(temp)))
+    
+    # Applying the mask to the previous stacked arrays
+    tu = []
+    for k, s in zip(q, stacked):
+        polished_ = np.delete(s, np.array(k), 1)
+        print(np.shape(polished_))
+        new_k_umls = map(tuple, polished_.transpose())
+        new_k_umls = list(new_k_umls)
+        tu.append(new_k_umls)
+    print(datetime.datetime.now().replace(microsecond=0)-ab) 
+    if logger:
+        logger.info(str(datetime.datetime.now().replace(microsecond=0)-ab))
+
+    # Returning data with same format of input
+    return tu[0], tu[1]
 
 
 def max_dcg(k_neighs, sub = 2):
@@ -185,25 +295,39 @@ def occurred_labels(model, seed, k_most_similar=10):
         # Starting the counter of occurred labels inside the embedding
         #count = 0
         t = -1
-        # Cycling over the labels of the list v
-        for h, j in enumerate(v):
-            # j is one of the labels from the list per CUI
-            most_similar_words, _ = take_most_similar(model, j, newlist, k_most_similar=k_most_similar)
+        # If there are no labels for computing occurrence, treat the concept as an OOV 
+        if len(v) == 0:
+            pos, neg = [], []
+            pos, neg = measures.mod_dcgs_nohit(pos, neg, k_most_similar)
+            # Data preparation for output: list of 4-tuple with the list of posDCG, negDCG, a list of 
+            # k-times duplicated seed, a list of k-times duplicated 'OOV'.
+            tmp = list(map(lambda x, y, z, w:(x,y,z,w), 
+                           pos, neg,
+                           [seed for i in range(k_most_similar)], 
+                           ['OOV' for i in range(k_most_similar)]))
+            supp = None
             
-            # Isolating positiveDCG values for the sum 
-            pos = [i[0] for i in most_similar_words]
+        # If labels exist so compute occurrence
+        else:
+            # Cycling over the labels of the list v
+            for h, j in enumerate(v):
+                # j is one of the labels from the list per CUI
+                most_similar_words, _ = take_most_similar(model, j, newlist, k_most_similar=k_most_similar)
+            
+                # Isolating positiveDCG values for the sum 
+                pos = [i[0] for i in most_similar_words]
 
-            # If exists already a positiveDCG value more the actual in the loop, the if is skipped
-            # otherwise it is substitued 
-            if (t<(sum(pos)))|((t==(sum(pos)))&(most_similar_words[0][3]!='OOV')):
-                t = sum(pos)
-                supp = j
-                tmp = most_similar_words
-            #print('{:s}, {:f}\n'.format(supp, t))
-            #print(str(tmp)+'\n')
-        #print('\nPicked choice: {:s}, {:f}, {:s}\n'.format(supp, t, tmp[0][3]))        
-        # Storing a 4-tuple with the biggest value of posDCG, the correspondent negDCG, an array of k labels (the seed),
-        # and the k-most similar words for the label, in a dictionary, using the correspondent CUI as key                 
+                # If exists already a positiveDCG value more the actual in the loop, the if is skipped
+                # otherwise it is substitued 
+                if (t<(sum(pos))) | ((t==(sum(pos)))&(most_similar_words[0][3]!='OOV')):
+                    t = sum(pos)
+                    supp = j
+                    tmp = most_similar_words
+                #print('{:s}, {:f}\n'.format(supp, t))
+                #print(str(tmp)+'\n')
+            #print('\nPicked choice: {:s}, {:f}, {:s}\n'.format(supp, t, tmp[0][3]))        
+            # Storing a 4-tuple with the biggest value of posDCG, the correspondent negDCG, an array of k labels (the seed),
+            # and the k-most similar words for the label, in a dictionary, using the correspondent CUI as key                 
         dict_[k] = tmp
         new_seed.append(supp)
                 
