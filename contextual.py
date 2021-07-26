@@ -1,4 +1,4 @@
-import datetime, torch
+import datetime, os, torch, utils
 import numpy as np
 
 def tokenize_words(tokenizer, sentences, start, stop, attention_mask = False):
@@ -120,4 +120,41 @@ def context2static(model, inputs, vocabs, start, stop, name = 'bio_bert', n_laye
                     log.info(str(datetime.datetime.now().replace(microsecond=0)-a) + 
                              ' total time for ' + str(((i+1)/len(inputs))*100) + '%\n')
         print(datetime.datetime.now().replace(microsecond=0)-a)
+
+        
+def append_context2static(path = './Embeddings/staticized_biobert/'):
+    #
+    #
+    #------------------------------------------------------------------------------------------------------------
+    # The method attaches the files created with parallel programming via context2static method.
+    #
+    # It gets as input just the path of the folder with all the fragments in.
+    #------------------------------------------------------------------------------------------------------------
+    #
+    #
+    b = datetime.datetime.now().replace(microsecond=0)    
+    staticized = [f.name for f in os.scandir(path) if (f.is_file())&(f.name != 'README.md')]
+    staticized.sort()
+    print(staticized)
+    a = datetime.datetime.now().replace(microsecond=0)
+    tmp = 0
+    for i in staticized:
+        tmp += utils.mapcount(path+i)
+    print(datetime.datetime.now().replace(microsecond=0)-a)
+    
+    # tempfiles is an ordered list of temp files (open for reading)
+    with open("staticized_biobert.txt", 'w') as f:
+        for i, tempfile in enumerate(staticized):
+            c = datetime.datetime.now().replace(microsecond=0)
+            read = open(path+tempfile, 'r')
+            if i==0:
+                for line in read:
+                    replaces = line.replace("\n", "")
+                    dims = replaces.split(' ')[1]
+                    f.write(''.join('%s %s\n' % (tmp-1, dims)))
+            else:    
+                for line in read:
+                    f.write(line)
+        print('Time for one file: '+str(datetime.datetime.now().replace(microsecond=0)-c))
+    print('Total time: '+str(datetime.datetime.now().replace(microsecond=0)-b))
 
