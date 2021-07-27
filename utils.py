@@ -1,4 +1,4 @@
-import csv, datetime, logging, sys
+import csv, datetime, logging, mmap, sys
 import pandas as pd
 import pickle  
 
@@ -74,12 +74,14 @@ def mapcount(filename):
     #---------------------------------------------------------------------------------------------------------
     #
     #
+    a = datetime.datetime.now().replace(microsecond=0)
     f = open(filename, "r+")
     buf = mmap.mmap(f.fileno(), 0)
     lines = 0
     readline = buf.readline
     while readline():
         lines += 1
+    print(datetime.datetime.now().replace(microsecond=0)-a)
     return lines
 
         
@@ -131,6 +133,15 @@ def save_txt_dicts(my_dict, name_file):
 
         
 def setup_custom_logger(name):
+    #
+    #
+    #-------------------------------------------------------------------------------------------------------------
+    # Logger for printing and debugging
+    #
+    # It is used for log files for background processes.
+    #-------------------------------------------------------------------------------------------------------------
+    #
+    #
     PATH_LOGS = './logs/log_'
     formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
                                   datefmt='%Y-%m-%d %H:%M:%S')
