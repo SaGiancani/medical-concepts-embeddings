@@ -14,9 +14,11 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, emb_ty
     oov = []
     count = 0
     
+    # Control check for avoiding empty list processing 
     if (0 in np.shape(L_umls)) | (0 in np.shape(K_umls)):
         return storing_list
     
+    # Control check for print-constants
     if (len(L_umls)%2)==0:
         length = len(L_umls)
     else:
@@ -172,11 +174,15 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None):
     # Applying the mask to the previous stacked arrays
     tu = []
     for k, s in zip(q, stacked):
-        polished_ = np.delete(s, np.array(k), 1)
-        print(np.shape(polished_))
-        new_k_umls = map(tuple, polished_.transpose())
-        new_k_umls = list(new_k_umls)
-        tu.append(new_k_umls)
+        # Check for avoiding empty lists processing
+        if len(k)>0:
+            polished_ = np.delete(s, np.array(k), 1)
+            print(np.shape(polished_))
+            new_k_umls = map(tuple, polished_.transpose())
+            new_k_umls = list(new_k_umls)
+            tu.append(new_k_umls)
+        else:
+            tu.append([])
     print(datetime.datetime.now().replace(microsecond=0)-ab) 
     if logger:
         logger.info(str(datetime.datetime.now().replace(microsecond=0)-ab))
