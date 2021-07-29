@@ -51,9 +51,13 @@ def count_pairs(relations, cuis_list = None, mrrel_path = 'UMLS_data/MRREL.RRF')
     # Create a dictionary of relations -as keys-, and the pairs -as tuples- of CUIs linked by those
     # relations. If cuis_list is not None, one of the two CUIs of the pair has to be present into the seed
     #
+    # The method allows the building of the two sets for analogy computation: K_umls (with CUIs in pair
+    # related to a seed) and L_umls (all the pairs of CUIs in UMLS having a certain relation)
+    #
     # The method gets as input the MRREL.RRF table's path as well.
     # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
     #
+    # Have to be noticed: the order of storing is CUI2 - REL - CUI1. This is a feature of MRREL description
     #----------------------------------------------------------------------------------------------------
     #
     #
@@ -68,7 +72,7 @@ def count_pairs(relations, cuis_list = None, mrrel_path = 'UMLS_data/MRREL.RRF')
                 array = line.split('|')
                 if (array[7] in relations) & ((array[0] in cuis_list)|(array[4] in cuis_list)):
                     # Considering the RELA elements
-                    pair_tuple = ((array[0], array[4]))
+                    pair_tuple = ((array[4], array[0]))
                     # Adding it into a set: only if it is not already present    
                     tmpd[array[7]].append(pair_tuple)
 
@@ -78,7 +82,7 @@ def count_pairs(relations, cuis_list = None, mrrel_path = 'UMLS_data/MRREL.RRF')
                 array = line.split('|')
                 if (array[7] in relations):
                     # Considering the RELA elements
-                    pair_tuple = ((array[0], array[4]))
+                    pair_tuple = ((array[4], array[0]))
                     # Adding it into a set: only if it is not already present    
                     tmpd[array[7]].append(pair_tuple)
                 
@@ -314,53 +318,3 @@ def extracting_stys(cuis, mrsty_path= MRSTY):
         
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return tmp
-
-    
-    
-def related_cuis_concept(concept = 'C0024117', mrrel_path = MRREL):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------
-    #--------------------------------------------- DEPRECATED--------------------------------------------
-    #
-    # Create a list of related CUIs to a concept, given as input.
-    # The method gets as input the MRREL.RRF table's path as well.
-    # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
-    #
-    # It represents the first step in building the seed_rel: 
-    # (MRREL) --FIRST_HOP--> (ordered list of CUIs)
-    #
-    # The method extracts the second CUIs of the relation CUI1|REL|CUI2: the relation is doubled, so in 
-    # the table you can find the both ways of the relationship.
-    #----------------------------------------------------------------------------------------------------
-    #----------------------------------------------------------------------------------------------------
-    #
-    #
-    # Timer for keeping track of the activity time
-    a = datetime.datetime.now().replace(microsecond=0)
-    list_tmp = []
-    # Appending the concept which is looked for
-    list_tmp.append(concept)
-    # Open the RFF table as a csv file
-    with open(mrrel_path, newline='') as csvfile:
-    # Loop among the lines of the table
-        for line in csvfile.readlines():
-            # Split the rows on the separator |
-            array = line.split('|')
-            # Take the valuable data: 1st's element cui , 2nd's element cui
-            cuione_item = array[0]
-            cuitwo_item = array[4]
-            # Check on CUI: if the string's CUI is not inside the dictionary 
-            # yet, come in
-            if ((cuione_item == concept)&(cuitwo_item not in list_tmp)):
-                # Appending the CUIs inside the temporary list
-                list_tmp.append(cuitwo_item)
-            # This check is deprecated because the relationships are biunivoque and duplicated
-            #if ((cuitwo_item == concept)&(cuione_item not in list_tmp)):
-            # Appending CUI
-            #    print('COPD is the second related word')
-            #    list_tmp.append(cuione_item)
-        print(len(list_tmp))
-    print(datetime.datetime.now().replace(microsecond=0)-a)
-    return list_tmp 
-    
