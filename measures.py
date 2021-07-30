@@ -1,15 +1,9 @@
-import datetime, utils
+import datetime, itertools, utils
 import numpy as np
 
 
-def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, emb_type = 'cui'):
+def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
     ab = datetime.datetime.now().replace(microsecond=0)
-    #print(len(K_umls[relation]))
-    #K_umls[relation] = list(set(K_umls[relation]))
-    #print(len(K_umls[relation]))
-    #print(len(L_umls[relation]))
-    #L_umls[relation] = list(set(L_umls[relation]))
-    #print(len(L_umls[relation]))
     storing_list = []
     oov = []
     count = 0
@@ -23,24 +17,61 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, emb_ty
         length = len(L_umls)
     else:
         length = len(L_umls) + 1
+        
+    b = datetime.datetime.now().replace(microsecond=0)    
     
-    b = datetime.datetime.now().replace(microsecond=0)
-    for concept_L in L_umls:
-        temporary = [concept_L[0], concept_L[1]]
-        for concept_K in K_umls:
-            temporary_ = temporary + [concept_K[0], concept_K[1]]
-            if concept_L != concept_K:
-                #if len(check)==0:
-                storing_list = cos3add(concept_K, concept_L, model, k_most_similar, storing_list)
+    if emb_type = 'cui':
+        for concept_L in L_umls:
+            temporary = [concept_L[0], concept_L[1]]
+            for concept_K in K_umls:
+                temporary_ = temporary + [concept_K[0], concept_K[1]]
+                if concept_L != concept_K:
+                    #if len(check)==0:
+                    storing_list = cos3add(concept_K, concept_L, model, k_most_similar, storing_list)
                 
-        count +=1
-        if (count%int(np.floor(length/20)) == 0):
-            if logger:
-                logger.info(str(datetime.datetime.now().replace(microsecond=0)-b))
-                logger.info('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
-            print(datetime.datetime.now().replace(microsecond=0)-b)
-            print('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
-            b = datetime.datetime.now().replace(microsecond=0)
+            # Printing checkpoints
+            count +=1
+            if (count%int(np.floor(length/20)) == 0):
+                if logger:
+                    logger.info(str(datetime.datetime.now().replace(microsecond=0)-b))
+                    logger.info('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
+                print(datetime.datetime.now().replace(microsecond=0)-b)
+                print('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
+                b = datetime.datetime.now().replace(microsecond=0)
+    
+    elif emb_type == 'labels' & dict_labels_for_L:
+        for concept_L in L_umls:
+            # The checks on the number of labels are deprecated because the preprocessing of the K and L sets
+            # discard the concept with no labels IoV.
+            #if (len(dict_labels_for_L[concept_L[0]])>0) & (len(dict_labels_for_L[concept_L[1]])>0):
+            temporary = [dict_labels_for_L[concept_L[0]], dict_labels_for_L[concept_L[1]]]
+            for concept_K in K_umls:
+                #if (len(dict_labels_for_L[concept_K[0]])>0) & (len(dict_labels_for_K[concept_L[1]])>0):
+                temporary_ = temporary + [dict_labels_for_L[concept_K[0]], dict_labels_for_L[concept_K[1]]]
+                kl = list(itertools.product(*temporary_))
+                tmp_store = []
+                for i in range(len(kl)):
+                    if (kl[i][0], kl[i][1]) != (kl[i][2], kl[i][3]):
+                        #if len(check)==0:
+                        tmp_store = cos3add((kl[i][0], kl[i][1]), 
+                                            (kl[i][2], kl[i][3]), 
+                                            model, 
+                                            k_most_similar, 
+                                            tmp_store)
+                        if (tmp_store[-1][-1] == 1) | (len(tmp_store) == len(kl)):
+                            storing_list.append(tmp_store[-1])
+                            break
+                
+            # Printing checkpoints
+            count +=1
+            if (count%int(np.floor(length/20)) == 0):
+                if logger:
+                    logger.info(str(datetime.datetime.now().replace(microsecond=0)-b))
+                    logger.info('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
+                print(datetime.datetime.now().replace(microsecond=0)-b)
+                print('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
+                b = datetime.datetime.now().replace(microsecond=0)
+            
     #model.wv.most_similar(positive=["king", "woman"], negative=["man"], topn = 5)
     #vec1, vec2, vec3 = model.wv["king"], model.wv["man"], model.wv["woman"]
     #result = model.similar_by_vector(vec1 - vec2 + vec3, topn=5)
@@ -131,7 +162,7 @@ def iov(d):
     return len(d)-tmp
     
 
-def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None): 
+def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = None, emb_type = 'cui'): 
     # Timer started
     ab = datetime.datetime.now().replace(microsecond=0)
     # Extraction Vemb
@@ -153,23 +184,38 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None):
     # Sorting Vemb in a growing way. I dont understand the meaning with strings
     sorted_Vemb = Vemb[index]
     q = []
-    # Making presence masks for discarding pairs oov by the Vemb 
-    for j in [[l_x, l_y], [k_x, k_y]]:
-        temp = []
-        for i in j:
-            sorted_index_i = np.searchsorted(sorted_Vemb, i)
-            #print(list(sorted_index_lx)[:20])
-            #print(len(sorted_index_lx))
-            yindex = np.take(index, sorted_index_i, mode="clip")
-            #print(list(yindex)[:20])
-            mask = Vemb[yindex] != i
-            #print(list(mask)[:20])
-            array_ids = np.where(mask)
-            tmp = array_ids[0].tolist()
-            temp = temp + tmp
-            #print(np.shape(array_ids))
-            #result = np.ma.array(yindex, mask=mask)
-        q.append(list(set(temp)))
+    if emb_type == 'cui':
+        # Making presence masks for discarding pairs oov by the Vemb 
+        for j in [[l_x, l_y], [k_x, k_y]]:
+            temp = []
+            for i in j:
+                sorted_index_i = np.searchsorted(sorted_Vemb, i)
+                yindex = np.take(index, sorted_index_i, mode="clip")
+                #print(list(yindex)[:20])
+                mask = Vemb[yindex] != i
+                #print(list(mask)[:20])
+                array_ids = np.where(mask)
+                tmp = array_ids[0].tolist()
+                temp = temp + tmp
+                #print(np.shape(array_ids))
+                #result = np.ma.array(yindex, mask=mask)
+            q.append(list(set(temp)))
+                
+    elif (emb_type == 'labels') & dict_labels_for_L:
+        # Polishing the set L keeping only concepts having labels IoV
+        dict_labels_iov = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
+        # Making presence masks for discarding pairs oov by the Vemb
+        for j in [[l_x, l_y], [k_x, k_y]]:
+            temp = []
+            for i in j:
+                mask = np.array([True if len(dict_labels_iov[u])>0 else False for u in i])
+                #print(list(mask)[:20])
+                array_ids = np.where(mask)
+                tmp = array_ids[0].tolist()
+                temp = temp + tmp
+                #print(np.shape(array_ids))
+                #result = np.ma.array(yindex, mask=mask)
+            q.append(list(set(temp)))
     
     # Applying the mask to the previous stacked arrays
     tu = []
@@ -183,6 +229,7 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None):
             tu.append(new_k_umls)
         else:
             tu.append([])
+                
     print(datetime.datetime.now().replace(microsecond=0)-ab) 
     if logger:
         logger.info(str(datetime.datetime.now().replace(microsecond=0)-ab))
