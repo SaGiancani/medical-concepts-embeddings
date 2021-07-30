@@ -40,7 +40,7 @@ def count_relationships(mrrel_path = MRREL, rel_type = 'RELA'):
 
 
 
-def count_pairs(relations, cuis_list = None, mrrel_path = 'UMLS_data/MRREL.RRF'):
+def count_pairs(relations, cuis_list = None, mrrel_path = MRREL):
     #
     #
     #----------------------------------------------------------------------------------------------------
