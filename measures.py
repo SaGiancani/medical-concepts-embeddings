@@ -3,11 +3,30 @@ import numpy as np
 
 
 def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
+    #
+    #
+    #-----------------------------------------------------------------------------------------------------------
+    # The method implements the analogic reasoning. 
+    # It has two modes, handled by the emb_type switch: a cui mode, where the processed concepts are CUIs, and a
+    # labels mode, where the processed concepts are preferred and not preferred labels.
+    #
+    # The L and K are list of pairs for a specific relation. The model is the gensim model of the considered
+    # embedding. 
+    # k_most_similar is the value of k used for the k-NN.
+    # The logger is not compulsary and it is used for debugging and keeping track of running scripts. It is 
+    # tought for background running scripts.
+    # dict_labels_for_L is compulsary only for emb_type = 'labels' case. It is the dictionary with all
+    # the unique concepts of L set. For each key-concept the dictionary has as value a list of labels iov 
+    # 
+    # The method returns the storing_list iteratively computed by cos3add.
+    #-----------------------------------------------------------------------------------------------------------
+    #
+    #
     ab = datetime.datetime.now().replace(microsecond=0)
     storing_list = []
-    oov = []
     count = 0
-    
+    print(np.shape(L_umls))
+    print(np.shape(K_umls))
     # Control check for avoiding empty list processing 
     if (0 in np.shape(L_umls)) | (0 in np.shape(K_umls)):
         return storing_list
@@ -20,14 +39,14 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
         
     b = datetime.datetime.now().replace(microsecond=0)    
     
-    if emb_type = 'cui':
+    if emb_type == 'cui':
         for concept_L in L_umls:
             temporary = [concept_L[0], concept_L[1]]
             for concept_K in K_umls:
                 temporary_ = temporary + [concept_K[0], concept_K[1]]
                 if concept_L != concept_K:
                     #if len(check)==0:
-                    storing_list = cos3add(concept_K, concept_L, model, k_most_similar, storing_list)
+                    storing_list = cos3add(concept_L, concept_K, model, k_most_similar, storing_list)
                 
             # Printing checkpoints
             count +=1
@@ -39,22 +58,23 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
                 print('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
                 b = datetime.datetime.now().replace(microsecond=0)
     
-    elif emb_type == 'labels' & dict_labels_for_L:
+    elif (emb_type == 'labels') and (dict_labels_for_L is not None):
         for concept_L in L_umls:
-            # The checks on the number of labels are deprecated because the preprocessing of the K and L sets
-            # discard the concept with no labels IoV.
+            #print(dict_labels_for_L[concept_L[0]])
+            # Check for evaluating the existence of labels for the choosen concepts inside the vocabulary.
+            # They are an overkill: the L and K are choosen for being inside the vocabulary
             #if (len(dict_labels_for_L[concept_L[0]])>0) & (len(dict_labels_for_L[concept_L[1]])>0):
             temporary = [dict_labels_for_L[concept_L[0]], dict_labels_for_L[concept_L[1]]]
             for concept_K in K_umls:
-                #if (len(dict_labels_for_L[concept_K[0]])>0) & (len(dict_labels_for_K[concept_L[1]])>0):
+                #if (len(dict_labels_for_L[concept_L[0]])>0) & (len(dict_labels_for_L[concept_L[1]])>0):
                 temporary_ = temporary + [dict_labels_for_L[concept_K[0]], dict_labels_for_L[concept_K[1]]]
                 kl = list(itertools.product(*temporary_))
                 tmp_store = []
                 for i in range(len(kl)):
                     if (kl[i][0], kl[i][1]) != (kl[i][2], kl[i][3]):
                         #if len(check)==0:
-                        tmp_store = cos3add((kl[i][0], kl[i][1]), 
-                                            (kl[i][2], kl[i][3]), 
+                        tmp_store = cos3add((kl[i][0], kl[i][1]), # the L-pair
+                                            (kl[i][2], kl[i][3]), # the K-pair
                                             model, 
                                             k_most_similar, 
                                             tmp_store)
@@ -81,13 +101,26 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     return storing_list
         
 
-def cos3add(concept_K, concept_L, model, k_most_similar, storing_list):
-    #if len(check)==0:
-    tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[0]], negative=[concept_L[1]], topn=k_most_similar)))[0]
-    if concept_K[1] in tmp:
-        storing_list.append((concept_K, concept_L, 1))
+def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
+    #
+    #
+    #-----------------------------------------------------------------------------------------------------------
+    # It is the implementation of the 3CosAdd by Mikolov, aka the analogy computation of the classic
+    # analogic relation king-man = queen-woman
+    #
+    # Example of analogic reasoning: 
+    # model_g.wv.most_similar(positive=["king", "woman"], negative=["man"], topn = 5) # L0, K1  L1
+    #
+    # The method returns a list of tuples, with each tuple with the pair of L, the pair of K and a value (0 or 1)
+    # depending by the occurrence: 1 for occurrence, 0 for not occurrence.
+    #-----------------------------------------------------------------------------------------------------------
+    #
+    #
+    tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[1]], negative=[concept_L[1]], topn=k_most_similar)))[0]
+    if concept_K[0] in tmp:
+        storing_list.append((concept_L, concept_K,  1))
     else:
-        storing_list.append((concept_K, concept_L, 0))
+        storing_list.append((concept_L, concept_K,  0))
     return storing_list
 
 
@@ -162,68 +195,84 @@ def iov(d):
     return len(d)-tmp
     
 
-def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = None, emb_type = 'cui'): 
+def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
+    #
+    #
+    #----------------------------------------------------------------------------------------------------
+    # Accessory method: it preprocesses the K and L sets, discarding the pairs with OOV elements, in 
+    # both the sets. This allows a cut of computational cost, fasting the computation of analogy.
+    #
+    # The method gets as input a list of pairs, given a relation, for L. 
+    # A list of pairs for the same relation for K set.
+    # The model of considered embedding.
+    # A logger is not compulsary: it is tought for background run on vm and for keeping track of errors.
+    # dict_labels_for_L is compulsary only for emb_type = 'labels' case. It is the dictionary with all
+    # the unique concepts of L set. For each key-concept the dictionary has as value a list of labels iov 
+    #
+    # The method returns the polished K and L sets of pairs, all iov.
+    #----------------------------------------------------------------------------------------------------
+    #
+    #
     # Timer started
     ab = datetime.datetime.now().replace(microsecond=0)
-    # Extraction Vemb
-    Vemb = np.array(list(utils.extract_w2v_vocab(model)))
     # Changing format to the two lists, K_umls and L_umls
     print(np.shape(np.array(list(zip(*L_umls_rel)))))
     l_x = np.array(list(zip(*L_umls_rel))[0])
     l_y = np.array(list(zip(*L_umls_rel))[1])
     l_stacked = np.stack((l_x, l_y))
-    #d = np.array(list(second_l))
     k_x = np.array(list(zip(*K_umls_rel))[0])
     k_y = np.array(list(zip(*K_umls_rel))[1])
 
     k_stacked = np.stack((k_x, k_y))
     stacked = [l_stacked, k_stacked]
 
-    # Extracting indeces of Vemb, sorting values in growing way.
-    index = np.argsort(Vemb)
-    # Sorting Vemb in a growing way. I dont understand the meaning with strings
-    sorted_Vemb = Vemb[index]
     q = []
     if emb_type == 'cui':
+        # Extraction Vemb
+        Vemb = np.array(list(utils.extract_w2v_vocab(model)))
+        # Extracting indeces of Vemb, sorting values in growing way.
+        index = np.argsort(Vemb)
+        # Sorting Vemb in a growing way. I dont understand the meaning with strings
+        sorted_Vemb = Vemb[index]        
         # Making presence masks for discarding pairs oov by the Vemb 
         for j in [[l_x, l_y], [k_x, k_y]]:
             temp = []
             for i in j:
                 sorted_index_i = np.searchsorted(sorted_Vemb, i)
                 yindex = np.take(index, sorted_index_i, mode="clip")
-                #print(list(yindex)[:20])
                 mask = Vemb[yindex] != i
-                #print(list(mask)[:20])
                 array_ids = np.where(mask)
                 tmp = array_ids[0].tolist()
+                # The indeces of the first element of the pair are added to the indeces of 
+                # the second element of the pair.
                 temp = temp + tmp
-                #print(np.shape(array_ids))
-                #result = np.ma.array(yindex, mask=mask)
             q.append(list(set(temp)))
                 
-    elif (emb_type == 'labels') & dict_labels_for_L:
+    elif (emb_type == 'labels') and (dict_labels_for_L is not None):
         # Polishing the set L keeping only concepts having labels IoV
-        dict_labels_iov = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
+        #dict_labels_iov = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
         # Making presence masks for discarding pairs oov by the Vemb
         for j in [[l_x, l_y], [k_x, k_y]]:
             temp = []
             for i in j:
-                mask = np.array([True if len(dict_labels_iov[u])>0 else False for u in i])
-                #print(list(mask)[:20])
+                # Keep track the concepts which dont follow the condition
+                mask = np.array([False if len(dict_labels_for_L[u])>0 else True for u in i])
                 array_ids = np.where(mask)
                 tmp = array_ids[0].tolist()
+                # The indeces of the first element of the pair are added to the indeces of 
+                # the second element of the pair.
                 temp = temp + tmp
-                #print(np.shape(array_ids))
-                #result = np.ma.array(yindex, mask=mask)
             q.append(list(set(temp)))
-    
     # Applying the mask to the previous stacked arrays
     tu = []
     for k, s in zip(q, stacked):
+        # The sum of the indeces from the two elements of pairs doesnt sort the values
+        # For avoiding bugs, the indeces are sorted before deleting the correspondent elements.
+        k = np.sort(k)
         # Check for avoiding empty lists processing
         if len(k)>0:
+            # Deletion of stored indeces.
             polished_ = np.delete(s, np.array(k), 1)
-            print(np.shape(polished_))
             new_k_umls = map(tuple, polished_.transpose())
             new_k_umls = list(new_k_umls)
             tu.append(new_k_umls)
@@ -233,7 +282,7 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
     print(datetime.datetime.now().replace(microsecond=0)-ab) 
     if logger:
         logger.info(str(datetime.datetime.now().replace(microsecond=0)-ab))
-
+    
     # Returning data with same format of input
     return tu[0], tu[1]
 
