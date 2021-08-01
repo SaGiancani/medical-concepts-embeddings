@@ -87,7 +87,7 @@ def count_pairs(relations, cuis_list = None, mrrel_path = MRREL):
                     tmpd[array[7]].append(pair_tuple)
                 
         print(len(tmpd))
-    print(datetime.datetime.now().replace(microsecond=0)-a)
+    print('Building pairs set time: '+str(datetime.datetime.now().replace(microsecond=0)-a))
     return tmpd
 
 
@@ -182,7 +182,7 @@ def concepts_related_to_concept(mrrel_path = MRREL,
         return utils.polish_relations(tmpd, ty = switch_key)
             
 
-    print(datetime.datetime.now().replace(microsecond=0)-a)
+    print('Building seed time: '+str(datetime.datetime.now().replace(microsecond=0)-a))
     return tmpd
 
 
@@ -251,7 +251,7 @@ def discarding_labels_oov(emb_vocab, seed):
     new_dict = {}
     for cui, labels in seed.items():
         new_dict[cui] = list(vemb.intersection(set(labels)))
-    print(datetime.datetime.now().replace(microsecond=0)-t)    
+    print('Time for discarding labels: '+ str(datetime.datetime.now().replace(microsecond=0)-t))    
     return new_dict
 
 
@@ -275,7 +275,7 @@ def extracting_strings(cuis_list , dict_strings = utils.inputs_load(DICT_CONSO))
             dict_tmp[i] = dict_strings[i]
         except:
             not_found.append(i)
-    print(datetime.datetime.now().replace(microsecond=0)-a)
+    print('Time for extracting labels: '+str(datetime.datetime.now().replace(microsecond=0)-a))
     return dict_tmp, not_found
 
 
