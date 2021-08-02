@@ -7,34 +7,6 @@ from gensim.models import KeyedVectors, Word2Vec
 from gensim.test.utils import datapath
 
 
-# Some relationships are discarded: this is a subset of all_copd_relations, almost the half of them were an overkill
-USEFUL_RELA = ['associated_finding_of',
-               'associated_morphology_of',
-               'associated_with_malfunction_of_gene_product',
-               'clinical_course_of',
-               'contraindicated_with_disease',
-               'course_of',
-               'disease_has_associated_anatomic_site',
-               'disease_has_associated_gene',
-               'finding_site_of',
-               'gene_associated_with_disease',
-               'gene_product_malfunction_associated_with_disease', 
-               'has_associated_finding',
-               'has_associated_morphology',
-               'has_clinical_course',
-               'has_contraindicated_drug', 
-               'has_course',
-               'has_finding_site',
-               'has_manifestation',
-               #     'inverse_isa',
-               'is_associated_anatomic_site_of',
-               #     'isa',
-               'manifestation_of',
-               'may_be_treated_by', 
-               'may_treat',
-               '']
-K_MOST_SIMILAR = 10
-
     
 def analog_pipe(L, K, k_most_similar, dict_labels_for_L, logger, K_type):
     a = datetime.datetime.now().replace(microsecond=0)
@@ -119,9 +91,36 @@ def analog_pipe(L, K, k_most_similar, dict_labels_for_L, logger, K_type):
 
     
 if __name__ == '__main__':
-    a = datetime.datetime.now().replace(microsecond=0)    
+    # Some relationships are discarded: this is a subset of all_copd_relations, almost the half of them were an overkill
+    USEFUL_RELA = ['associated_finding_of',
+                   'associated_morphology_of',
+                   'associated_with_malfunction_of_gene_product',
+                   'clinical_course_of',
+                   'contraindicated_with_disease',
+                   'course_of',
+                   'disease_has_associated_anatomic_site',
+                   'disease_has_associated_gene',
+                   'finding_site_of',
+                   'gene_associated_with_disease',
+                   'gene_product_malfunction_associated_with_disease', 
+                   'has_associated_finding',
+                   'has_associated_morphology',
+                   'has_clinical_course',
+                   'has_contraindicated_drug', 
+                   'has_course',
+                    'has_finding_site',
+                   'has_manifestation',
+                   #     'inverse_isa',
+                   'is_associated_anatomic_site_of',
+                   #     'isa',
+                   'manifestation_of',
+                   'may_be_treated_by', 
+                   'may_treat',
+                   '']
+    
+    K_MOST_SIMILAR = 10
+
     # Constant and logger instantiation    
-    PATH_EMBEDDINGS = './Embeddings'
     logger = utils.setup_custom_logger('myapp')
     logger.info('Start\n')
     
