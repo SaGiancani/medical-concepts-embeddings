@@ -1,10 +1,39 @@
 import csv, datetime, utils
 from collections import defaultdict
 
-MRREL = 'UMLS_data/MRREL.RRF'
-MRCONSO = 'UMLS_data/MRCONSO.RRF'
-MRSTY = 'UMLS_data/MRSTY.RRF'
+# Constants
+COPD = 'C0024117'
 DICT_CONSO = 'Utilities/dict_conso'
+MRCONSO = 'UMLS_data/MRCONSO.RRF'
+MRREL = 'UMLS_data/MRREL.RRF'
+MRSTY = 'UMLS_data/MRSTY.RRF'
+
+# Some relationships are discarded: this is a subset of all_copd_relations, almost the half of them were an overkill
+USEFUL_RELA = ['associated_finding_of',
+               'associated_morphology_of',
+               'associated_with_malfunction_of_gene_product',
+               'clinical_course_of',
+               'contraindicated_with_disease',
+               'course_of',
+               'disease_has_associated_anatomic_site',
+               'disease_has_associated_gene',
+               'finding_site_of',
+               'gene_associated_with_disease',
+               'gene_product_malfunction_associated_with_disease', 
+               'has_associated_finding',
+               'has_associated_morphology',
+               'has_clinical_course',
+               'has_contraindicated_drug', 
+               'has_course',
+               'has_finding_site',
+               'has_manifestation',
+               #     'inverse_isa',
+               'is_associated_anatomic_site_of',
+               #     'isa',
+               'manifestation_of',
+               'may_be_treated_by', 
+               'may_treat']#,
+               #'']
 
 def count_relationships(mrrel_path = MRREL, rel_type = 'RELA'):
     #
@@ -92,7 +121,7 @@ def count_pairs(relations, cuis_list = None, mrrel_path = MRREL):
 
 
 def concepts_related_to_concept(mrrel_path = MRREL, 
-                                concept = 'C0024117', 
+                                concept = COPD, 
                                 two_way = True, 
                                 polishing_rels = False,
                                 switch_key= 'con',
