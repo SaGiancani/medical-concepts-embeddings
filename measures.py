@@ -44,6 +44,7 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
             temporary = [concept_L[0], concept_L[1]]
             for concept_K in K_umls:
                 temporary_ = temporary + [concept_K[0], concept_K[1]]
+                # This check returns a number of analogy computed fewer than the number of starting pairs (K and L)
                 if concept_L != concept_K:
                     #if len(check)==0:
                     storing_list = cos3add(concept_L, concept_K, model, k_most_similar, storing_list)
@@ -60,7 +61,6 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     
     elif (emb_type == 'labels') and (dict_labels_for_L is not None):
         for concept_L in L_umls:
-            #print(dict_labels_for_L[concept_L[0]])
             # Check for evaluating the existence of labels for the choosen concepts inside the vocabulary.
             # They are an overkill: the L and K are choosen for being inside the vocabulary
             #if (len(dict_labels_for_L[concept_L[0]])>0) & (len(dict_labels_for_L[concept_L[1]])>0):
@@ -68,9 +68,12 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
             for concept_K in K_umls:
                 #if (len(dict_labels_for_L[concept_L[0]])>0) & (len(dict_labels_for_L[concept_L[1]])>0):
                 temporary_ = temporary + [dict_labels_for_L[concept_K[0]], dict_labels_for_L[concept_K[1]]]
+                # Combination of all the labels in pairs
                 kl = list(itertools.product(*temporary_))
                 tmp_store = []
+                # This loop is modifiable: loop over kl in place of range(len(kl)) 
                 for i in range(len(kl)):
+                    # The two pairs have to be different
                     if (kl[i][0], kl[i][1]) != (kl[i][2], kl[i][3]):
                         #if len(check)==0:
                         tmp_store = cos3add((kl[i][0], kl[i][1]), # the L-pair
@@ -78,6 +81,8 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
                                             model, 
                                             k_most_similar, 
                                             tmp_store)
+                        # The last element, if 1, is taken and the loop is broken. 
+                        # Otherwise is taken the last one
                         if (tmp_store[-1][-1] == 1) | (len(tmp_store) == len(kl)):
                             storing_list.append(tmp_store[-1])
                             break
@@ -108,7 +113,8 @@ def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
     # It is the implementation of the 3CosAdd by Mikolov, aka the analogy computation of the classic
     # analogic relation king-man = queen-woman
     #
-    # Example of analogic reasoning: 
+    # Example of analogic reasoning:
+    # queen - king = woman - man || L0 - L1 = K0 - K1 ; L0 + K1 - L1 = K0 || queen + man - woman = king
     # model_g.wv.most_similar(positive=["king", "woman"], negative=["man"], topn = 5) # L0, K1  L1
     #
     # The method returns a list of tuples, with each tuple with the pair of L, the pair of K and a value (0 or 1)
@@ -237,15 +243,20 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
         # Making presence masks for discarding pairs oov by the Vemb 
         for j in [[l_x, l_y], [k_x, k_y]]:
             temp = []
+            # with j the two elements of pair
             for i in j:
                 sorted_index_i = np.searchsorted(sorted_Vemb, i)
                 yindex = np.take(index, sorted_index_i, mode="clip")
+                # Keep track the concepts which dont follow the condition: False for the ones 
+                # with labels inside the vocabulary True for the ones oov                
                 mask = Vemb[yindex] != i
                 array_ids = np.where(mask)
+                # Mask matrix polished
                 tmp = array_ids[0].tolist()
                 # The indeces of the first element of the pair are added to the indeces of 
-                # the second element of the pair.
+                # the second element of the pair. A list of indeces is obtained
                 temp = temp + tmp
+            # It avoids repetition of indeces
             q.append(list(set(temp)))
                 
     elif (emb_type == 'labels') and (dict_labels_for_L is not None):
@@ -255,13 +266,15 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
         for j in [[l_x, l_y], [k_x, k_y]]:
             temp = []
             for i in j:
-                # Keep track the concepts which dont follow the condition
+                # Keep track the concepts which dont follow the condition: False for the ones 
+                # with labels inside the vocabulary True for the ones oov
                 mask = np.array([False if len(dict_labels_for_L[u])>0 else True for u in i])
                 array_ids = np.where(mask)
                 tmp = array_ids[0].tolist()
                 # The indeces of the first element of the pair are added to the indeces of 
-                # the second element of the pair.
+                # the second element of the pair. A list of indeces is obtained
                 temp = temp + tmp
+            # It avoids repetition of indeces inside the list
             q.append(list(set(temp)))
     # Applying the mask to the previous stacked arrays
     tu = []
