@@ -1,4 +1,4 @@
-import datetime, measures, os, umls_tables_processing, utils
+import argparse, datetime, measures, os, umls_tables_processing, utils
 from collections import defaultdict
 from multiprocessing import Pool
 import numpy as np
@@ -7,82 +7,169 @@ from gensim.models import KeyedVectors, Word2Vec
 from gensim.test.utils import datapath
 
 
+def analog_loop(path, binary_bool, name, type_emb, L, K, k_most_similar, K_type, logger, analog_comp_dict,
+                sets_relations, dict_labels_for_L = None):
     
-def analog_pipe(L, K, k_most_similar, dict_labels_for_L, logger, K_type):
+    # Load the w2v model
+    model = KeyedVectors.load_word2vec_format(path, binary=binary_bool)
+    
+    # Instantiation and log print
+    analog_comp_dict[name] = {}
+    logger.info('\n\n The name of embedding is: %s\n', name)
+    dict_t = {}
+    dict_t[name] = {}
+    
+    # Loop over the relations
+    for rela in umls_tables_processing.USEFUL_RELA:
+        logger.info('\n The RELA is: %s\n', rela)
+        
+        # Check type of embedding
+        if type_emb=='/cuis/':
+            c = datetime.datetime.now().replace(microsecond=0)
+            l0, k0 = measures.k_n_l_iov(L[rela], 
+                                        K[rela],
+                                        model, 
+                                        logger = logger,
+                                        emb_type = 'cui')
+            
+            # sets_relations keeps track of the number of pairs of K and L sets. 
+            # The number of filtered pairs on Vemb, per relation are stored
+            sets_relations[rela].append((name+'_l'+K_type, np.shape(l0)))
+            sets_relations[rela].append((name+'_k'+K_type, np.shape(k0)))
+            
+            # Save the pickle variable
+            utils.inputs_save(sets_relations, 'Utilities/sets_relations' + name + K_type)
+                                
+            # Compute the analogy and store the results
+            tmp = measures.analogy_compute(l0, k0, 
+                                           model,
+                                           k_most_similar,
+                                           logger = logger,
+                                           emb_type = 'cui')
+            dict_t[name][rela] = tmp
+            
+            # Compute the sum of analogy hits and store it.
+            if len(tmp)>0:
+                analog_comp_dict[name][rela] = (sum(list(zip(*tmp))[2]), len(tmp))
+            else:
+                analog_comp_dict[name][rela] = (0, len(tmp))                        
+
+            utils.inputs_save(dict_t, 'Utilities/' + name + K_type)                    
+            utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
+            
+            # Log of end of 'relation' operation
+            logger.info('The time for RELA %s, for embedding %s is %s', 
+                        rela,
+                        name,
+                        str(datetime.datetime.now().replace(microsecond=0)-c))
+                    
+        # Check type of embedding: for word embeddings the dictionary of labels per cui is required
+        elif (type_emb=='/words/') and (dict_labels_for_L is not None):
+            c = datetime.datetime.now().replace(microsecond=0)
+            
+            # Filter the dictionary of labels keeping only the labels-words present into the embedding
+            Vemb =utils.extract_w2v_vocab(model)
+            dict_labels_inters_vemb = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
+            # Filtering L and K sets for present labels inside the embedding
+            l0, k0 = measures.k_n_l_iov(L[rela], 
+                                        K[rela],
+                                        model, 
+                                        logger = logger,
+                                        dict_labels_for_L = dict_labels_inters_vemb,
+                                        emb_type = 'labels')
+
+            # Store number of filtered pairs
+            sets_relations[rela].append((name+'_l'+K_type, np.shape(l0)))
+            sets_relations[rela].append((name+'_k'+K_type, np.shape(k0)))
+
+            utils.inputs_save(sets_relations, 'Utilities/sets_relations' + name + K_type)
+                    
+            tmp = measures.analogy_compute(l0, k0, 
+                                           model, 
+                                           k_most_similar, 
+                                           logger = logger,
+                                           dict_labels_for_L = dict_labels_inters_vemb, 
+                                           emb_type = 'labels')                    
+                    
+            dict_t[name][rela] = tmp
+                    
+            if len(tmp)>0:
+                analog_comp_dict[name][rela] = (sum(list(zip(*tmp))[2]), len(tmp))
+            else:
+                analog_comp_dict[name][rela] = (0, len(tmp))
+                        
+            utils.inputs_save(dict_t, 'Utilities/' + name + K_type)                    
+            utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
+                    
+            logger.info('The time for RELA %s, for embedding %s is %s', 
+                        rela,
+                        name,
+                        str(datetime.datetime.now().replace(microsecond=0)-c))
+
+    
+def analog_pipe(L, K, k_most_similar, dict_labels_for_L, logger, K_type, parallel = False, embedding_type = 'both'):
     a = datetime.datetime.now().replace(microsecond=0)
     
     # Storing expression of relations in sets K and L
     sets_relations = defaultdict(list)
-    for k in USEFUL_RELA:
+    for k in umls_tables_processing.USEFUL_RELA:
         sets_relations[k].append(('L_umls', np.shape(L[k])))
         sets_relations[k].append(('K'+K_type, np.shape(K[k])))
     print('Numbers of pairs for relationships stored')
     
     # Loading w2v files
     PATH_EMBEDDINGS = './Embeddings'
-    cuis = ('/cuis/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/cuis') if (f.is_file())&(f.name != 'README.md')])
-    labels = ('/words/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/words') if (f.is_file())&(f.name != 'README.md')])
-    embeddings = [cuis, labels]
+    embeddings = []
     
-    # Timer for loop
+    # CUI or Word Embeddings discrimination
+    if (embedding_type == 'cuis') or (embedding_type == 'both'):
+        logger.info('CUI embeddings\n'), 
+        cuis = ('/cuis/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/cuis') if (f.is_file())&(f.name != 'README.md')])
+        embeddings.append(cuis)
+        
+    elif (embedding_type == 'words') or (embedding_type == 'both'):
+        logger.info('Word embeddings\n'), 
+        labels = ('/words/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/words') if (f.is_file())&(f.name != 'README.md')])
+        embeddings.append(labels)
+    
+    # Universal dictionary instantiation
     analog_comp_dict = {}
     
     for type_emb in embeddings:
         b = datetime.datetime.now().replace(microsecond=0)
-        for emb in type_emb[1]:
-            model = KeyedVectors.load_word2vec_format(PATH_EMBEDDINGS+type_emb[0]+emb, binary=emb.endswith('.bin'))
-            name = os.path.splitext(emb)[0]
-            analog_comp_dict[name] = {}
-            logger.info('\n\n The name of embedding is: %s\n', name)
-            for rela in USEFUL_RELA:
-                logger.info('\n The RELA is: %s\n', rela)
-
-                if type_emb[0]=='/cuis/':
-                    c = datetime.datetime.now().replace(microsecond=0)
-                    l0, k0 = measures.k_n_l_iov(L[rela], 
-                                                K[rela],
-                                                model, 
-                                                logger = logger,
-                                                emb_type = 'cui')
-                    
-                    sets_relations[rela].append((emb+'_l'+K_type, np.shape(l0)))
-                    sets_relations[rela].append((emb+'_k'+K_type, np.shape(k0)))
-                    
-                    analog_comp_dict[name][rela] = measures.analogy_compute(l0, k0, 
-                                                                            model,
-                                                                            k_most_similar,
-                                                                            emb_type = 'cui')
-                    utils.inputs_save(analog_comp_dict, 'Utilities/' + name + K_type)
-                    utils.inputs_save(sets_relations, 'Utilities/sets_relations' + K_type)
-                    
-                    logger.info('The time for RELA %s is %s', rela,
-                    str(datetime.datetime.now().replace(microsecond=0)-c))
-                    
-                elif type_emb[0]=='/words/':
-                    c = datetime.datetime.now().replace(microsecond=0)
-                    Vemb =utils.extract_w2v_vocab(model)
-                    dict_labels_inters_vemb = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
-                    l0, k0 = measures.k_n_l_iov(L[rela], 
-                                                K[rela],
-                                                model, 
-                                                logger = logger,
-                                                dict_labels_for_L = dict_labels_inters_vemb,
-                                                emb_type = 'labels')
-                    
-                    sets_relations[rela].append((emb+'_l'+K_type, np.shape(l0)))
-                    sets_relations[rela].append((emb+'_k'+K_type, np.shape(k0)))
-                    
-                    analog_comp_dict[name][rela] = measures.analogy_compute(l0, k0, 
-                                                                            model,
-                                                                            k_most_similar,
-                                                                            dict_labels_for_L = dict_labels_inters_vemb, 
-                                                                            emb_type = 'labels')                    
-                    
-                    utils.inputs_save(analog_comp_dict, 'Utilities/' + name + K_type)
-                    utils.inputs_save(sets_relations, 'Utilities/sets_relations' + K_type)
-                    
-                    logger.info('The time for RELA %s is %s', rela,
-                    str(datetime.datetime.now().replace(microsecond=0)-c))
+        if parallel:
+            args = []
+            for emb in type_emb[1]:
+            # Instantiation of args for multiprocessing run
+                args.append((PATH_EMBEDDINGS+type_emb[0]+emb,
+                             emb.endswith('.bin'),
+                             os.path.splitext(emb)[0],
+                             type_emb[0], 
+                             L, K,
+                             k_most_similar,
+                             K_type,
+                             logger,
+                             analog_comp_dict,
+                             sets_relations,
+                             dict_labels_for_L)) 
+                logger.info('Preprocessing finished and multiprocessing running started\n')
+                # Multiprocessing logic for evaluating at the same time K for only copd related concepts
+                # and for seed related concepts
+            with Pool(processes = len(args)) as pool:
+                pool.starmap(analog_loop, args) 
+        else:
+            for emb in type_emb[1]:
+                analog_loop(PATH_EMBEDDINGS+type_emb[0]+emb, 
+                            emb.endswith('.bin'),
+                            os.path.splitext(emb)[0],
+                            type_emb[0], 
+                            L, K,
+                            k_most_similar,
+                            K_type,
+                            logger,
+                            analog_comp_dict,
+                            sets_relations,
+                            dict_labels_for_L)
             
         logger.info('The time for analogical computation of %s is %s', 
                     type_emb,
@@ -91,62 +178,62 @@ def analog_pipe(L, K, k_most_similar, dict_labels_for_L, logger, K_type):
 
     
 if __name__ == '__main__':
-    # Some relationships are discarded: this is a subset of all_copd_relations, almost the half of them were an overkill
-    USEFUL_RELA = ['associated_finding_of',
-                   'associated_morphology_of',
-                   'associated_with_malfunction_of_gene_product',
-                   'clinical_course_of',
-                   'contraindicated_with_disease',
-                   'course_of',
-                   'disease_has_associated_anatomic_site',
-                   'disease_has_associated_gene',
-                   'finding_site_of',
-                   'gene_associated_with_disease',
-                   'gene_product_malfunction_associated_with_disease', 
-                   'has_associated_finding',
-                   'has_associated_morphology',
-                   'has_clinical_course',
-                   'has_contraindicated_drug', 
-                   'has_course',
-                    'has_finding_site',
-                   'has_manifestation',
-                   #     'inverse_isa',
-                   'is_associated_anatomic_site_of',
-                   #     'isa',
-                   'manifestation_of',
-                   'may_be_treated_by', 
-                   'may_treat',
-                   '']
+    # Parsing values for fast and intuitive launch of the script: 
+    # paralleling, embedding_type, copd_K_switch are inserted by command line.
+    parser = argparse.ArgumentParser(description='Launching staticizing processing')
+    parser.add_argument('--p', 
+                        dest='paralleling',
+                        type=bool,
+                        default = False,
+                        required=False,
+                        help='The parallelization switch')
     
-    K_MOST_SIMILAR = 10
+    parser.add_argument('--t',
+                        dest='embedding_type',
+                        type=str,
+                        default = 'both',
+                        required=False,
+                        help='The type of analyzed embedding: it could be "both", "cuis", or "words"')
+    
+    parser.add_argument('--K_copd',
+                        dest='copd_K_switch',
+                        type=bool,
+                        default = False,
+                        required=False,
+                        help='The choosen K_umls set: True for copd K')
+
+    args = parser.parse_args()
+    print(args)
+    
+    # Check on quality of inserted data
+    assert args.embedding_type in ['both', 'cuis', 'words'], "Insert a string like 'both', 'cuis', or 'words'"
 
     # Constant and logger instantiation    
+    K_MOST_SIMILAR = 10
+
     logger = utils.setup_custom_logger('myapp')
     logger.info('Start\n')
     
-    # Seed complete by relationships
-    seed_analog_both = umls_tables_processing.concepts_related_to_concept(concept = 'C0024117',
-                                                                          two_way = True,
-                                                                          polishing_rels = False,
-                                                                          switch_key = 'rel',
-                                                                          extract_labels = True)
+    # Set building - limited relations for lightening the compute
+    L_umls = umls_tables_processing.count_pairs(umls_tables_processing.USEFUL_RELA)
     
-    # CUIs 
-    concepts = umls_tables_processing.concepts_related_to_concept(concept = 'C0024117',
+    # K_umls only for copd related concepts or for all.
+    if args.copd_K_switch:
+        K_umls = umls_tables_processing.count_pairs(umls_tables_processing.USEFUL_RELA, 
+                                                         cuis_list = [umls_tables_processing.COPD])
+        label_K = '_umls_copd' 
+    else:
+        # CUIs 
+        concepts = umls_tables_processing.concepts_related_to_concept(concept = umls_tables_processing.COPD,
                                                                   two_way = True,
                                                                   polishing_rels = False,
                                                                   switch_key = 'con',
                                                                   extract_labels = False)
-    
-    print('Seeds built')
-    # Relationships
-    all_copd_relations = list(seed_analog_both.keys())
-    
-    # Set building
-    L_umls = umls_tables_processing.count_pairs(all_copd_relations)
-    K_umls = umls_tables_processing.count_pairs(all_copd_relations, cuis_list = concepts)
-    K_umls_copd = umls_tables_processing.count_pairs(all_copd_relations, cuis_list = ['C0024117'])
-    print('Sets created')
+        logger.info('Seeds built\n')
+        K_umls = umls_tables_processing.count_pairs(umls_tables_processing.USEFUL_RELA, cuis_list = concepts)
+        label_K = '_umls'
+
+    logger.info('Sets created\n')
     
     # Building the dictionary for labels case
     # Collecting all the CUIs involved in set L
@@ -157,15 +244,15 @@ if __name__ == '__main__':
         tmp = set([j for i in jh for j in i ])
     dict_strings = umls_tables_processing.cui_strings()    
     dict_labels_for_L, _ = umls_tables_processing.extracting_strings(list(tmp), dict_strings = dict_strings)
-    print('Dictionary of labels from set L built')
-    
-    # Instantiation of args for multiprocessing run
-    args = [(L_umls, K_umls, K_MOST_SIMILAR, dict_labels_for_L, logger, '_umls'), 
-           (L_umls, K_umls_copd, K_MOST_SIMILAR, dict_labels_for_L, logger, '_umls_copd')]
-    
-    logger.info('Preprocessing finished and multiprocessing running started\n')
-    # Multiprocessing logic for evaluating at the same time K for only copd related concepts and for seed related concepts
-    with Pool(processes = 2) as pool:
-        pool.starmap(analog_pipe, args) 
+    logger.info('Dictionary of labels from set L built\n')
+        
+    # Start analogy pipeline
+    analog_pipe(L_umls, K_umls, 
+                K_MOST_SIMILAR, 
+                dict_labels_for_L, 
+                logger, 
+                label_K, 
+                parallel = args.paralleling,
+                embedding_type = args.embedding_type)
     
     
