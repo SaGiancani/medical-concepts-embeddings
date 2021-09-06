@@ -180,7 +180,7 @@ def analog_pipe(L, K, k_most_similar, dict_labels_for_L, logger, K_type, paralle
 if __name__ == '__main__':
     # Parsing values for fast and intuitive launch of the script: 
     # paralleling, embedding_type, copd_K_switch are inserted by command line.
-    parser = argparse.ArgumentParser(description='Launching staticizing processing')
+    parser = argparse.ArgumentParser(description='Launching analogy computation')
     parser.add_argument('--p', 
                         dest='paralleling',
                         type=bool,
@@ -201,7 +201,14 @@ if __name__ == '__main__':
                         default = False,
                         required=False,
                         help='The choosen K_umls set: True for copd K')
-
+    
+    parser.add_argument('--L',
+                        dest='L_type',
+                        type=bool,
+                        default = False,
+                        required=False,
+                        help='The choosen L_umls set: False for L, True for L=K')
+    
     args = parser.parse_args()
     print(args)
     
@@ -213,9 +220,6 @@ if __name__ == '__main__':
 
     logger = utils.setup_custom_logger('myapp')
     logger.info('Start\n')
-    
-    # Set building - limited relations for lightening the compute
-    L_umls = umls_tables_processing.count_pairs(umls_tables_processing.USEFUL_RELA)
     
     # K_umls only for copd related concepts or for all.
     if args.copd_K_switch:
@@ -232,7 +236,13 @@ if __name__ == '__main__':
         logger.info('Seeds built\n')
         K_umls = umls_tables_processing.count_pairs(umls_tables_processing.USEFUL_RELA, cuis_list = concepts)
         label_K = '_umls'
-
+    
+    # Set L building - limited relations for lightening the compute
+    if args.L_type:
+        L_umls = K_umls 
+    else:
+        L_umls = umls_tables_processing.count_pairs(umls_tables_processing.USEFUL_RELA)
+    
     logger.info('Sets created\n')
     
     # Building the dictionary for labels case
