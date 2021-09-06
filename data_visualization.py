@@ -1,10 +1,89 @@
 import dash
 import dash_table
+
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from matplotlib.patches import Rectangle
+
+import numpy as np
+import pandas as pd
+
 import plotly
 import plotly.graph_objects as go
 import seaborn as sns
+
+
+def plot_clustered_stacked(dfall, labels=None, title="multiple stacked bar plot", H="/", **kwargs):
+    """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
+    labels is a list of the names of the dataframe, used for the legend
+    title is a string for the title of the plot
+    H is the hatch used for identification of the different dataframe"""
+    plt.rcParams["figure.figsize"] = (30,10)
+    #matplotlib.style.use('fivethirtyeight') 
+    n_df = len(dfall)
+    n_col = len(dfall[0].columns) 
+    n_ind = len(dfall[0].index)
+    axe = plt.subplot(111)
+    
+    for df in dfall : # for each data frame
+        axe = df.plot(kind="bar",
+                      linewidth=0,
+                      stacked=True,
+                      ax=axe,
+                      legend=False,
+                      grid=False,
+                      **kwargs)  # make bar plots
+
+    h,l = axe.get_legend_handles_labels() # get the handles we want to modify
+    #x_coords = []
+    #heights = []
+    for i in range(0, n_df * n_col, n_col): # len(h) = n_col * n_df: loop over the dfs aka the two columns
+        for j, pa in enumerate(h[i:i+n_col]): # loop over the subcolumns
+            x_ = 0
+            for z, rect in enumerate(pa.patches): # for each index: aka loop over the x elements
+                #height = rect.get_height()
+                x_ = rect.get_x() + 1 / float(n_df + 1) * i / float(n_col)
+                rect.set_x(x_)
+                rect.set_hatch(H * int(i / n_col)) #edited part     
+                rect.set_width(1 / float(n_df + 1))
+                #x_coords.append(x_+(1 / float(n_df + 1))/2)
+                #heights.append(height)
+                #print(height)
+    
+    # Code for text labeling the bars
+    #x_coords = np.transpose(np.array(x_coords).reshape(-1, n_ind))
+    #heights = np.transpose(np.array(heights).reshape(-1, n_ind))
+    #tmp_y = []
+    #tmp_x = []
+    #for i in range(n_ind):
+    #    for j in range(round(len(heights[i])/n_col)):
+    #        print(j)
+    #        tmp_y.append(np.sum(heights[i][j*n_col:j*n_col+n_col]))
+    #        tmp_x.append(x_coords[i][j*n_col+n_col-1])
+    
+    #count = 0
+    #for x,y in zip(tmp_x, tmp_y):
+    #    if (count%2 == 0):
+    #        plt.text(x, y, text[0], ha='center', va='top', color='w')    
+    #    else:
+    #        plt.text(x, y, text[1], ha='center', va='top', color='w')                 
+    #    count +=1
+                
+    axe.set_xticks((np.arange(0, 2 * n_ind, 2) + 1 / float(n_df + 1)) / 2.)
+    axe.set_xticklabels(df.index, rotation = 45)
+    axe.set_title(title)
+
+    # Add invisible data to add another legend
+    n=[]        
+    for i in range(n_df):
+        n.append(axe.bar(0, 0, color="white", hatch=H * i))
+    
+    l1 = axe.legend(h[:n_col], l[:n_col], loc=[1.01, 0.5])
+    if labels is not None:
+        l2 = plt.legend(n, labels, loc=[1.01, 0.1]) 
+    axe.add_artist(l1)
+    return axe
 
 
 def plot_heatmaps(dict_parameters, seed, name_seed, red_sign = True):
