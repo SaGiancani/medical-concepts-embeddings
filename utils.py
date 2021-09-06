@@ -2,7 +2,7 @@ import csv, datetime, logging, mmap, sys
 import pandas as pd
 import pickle  
 
-
+    
 def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
     #
     #
