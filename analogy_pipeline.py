@@ -239,7 +239,8 @@ if __name__ == '__main__':
     
     # Set L building - limited relations for lightening the compute
     if args.L_type:
-        L_umls = K_umls 
+        L_umls = K_umls
+        label_K = '_LsameasK'+label_K
     else:
         L_umls = umls_tables_processing.count_pairs(umls_tables_processing.USEFUL_RELA)
     
