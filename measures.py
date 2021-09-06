@@ -34,6 +34,8 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     # Control check for print-constants
     if (len(L_umls)%2)==0:
         length = len(L_umls)
+    elif (len(L_umls)<20):
+        length = 20
     else:
         length = len(L_umls) + 1
         
@@ -128,6 +130,34 @@ def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
     else:
         storing_list.append((concept_L, concept_K,  0))
     return storing_list
+
+
+def cos3mul(concept_L, concept_K, model, k_most_similar, storing_list):
+    #
+    #
+    #-----------------------------------------------------------------------------------------------------------
+    # The paper Levine et al., Linguistic Regularities in Sparse and Explicit Word Representations shows the equation for 
+    # 3CosMul as the multiplicative version of 3CosAdd: 
+    # where 3CosAdd is b* - b = a* - a; b - a + *a = b*, the 3CosMul would be (b · a*)/ a ~ b*.
+    # Similar to our implementation of 3CosAdd, the implemented equation is: 
+    # L0 + K1 - L1 = K0 == b* - b + a = a*   ---->   (b* · a) / b ~ a*
+    #-----------------------------------------------------------------------------------------------------------
+    #
+    #
+    #tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[1]], negative=[concept_L[1]], topn=n_Vemb_subset)))[0]
+    for word in tmp:
+        #var = ((model.similarity(word, concept_L[1]) * model.similarity(word, concept_K[0]))/(epsilon +
+        #      model.similarity(word, concept_K[1])))       
+        #concept_zero = model.similar_by_vector((concept_L[1] * concept_K[0])/ (concept_K[1]), topn=k_most_similar)
+        #result_3cosmul = model.similar_by_vector((vec2 * vec3)/ (vec4), topn=5)
+        concept_zero = model.similar_by_vector((concept_L[0] * concept_K[1])/ (concept_L[1]), topn=k_most_similar)
+        #result_3cosmul = model.similar_by_vector((vec1 * vec4)/ (vec2), topn=5)
+        if concept_K[0] in concept_zero:
+            storing_list.append((concept_L, concept_K,  1))
+        else:
+            storing_list.append((concept_L, concept_K,  0))
+        return storing_list
+
 
 
 def count_occurred_labels(model, seed):
