@@ -34,8 +34,6 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     # Control check for print-constants
     if (len(L_umls)%2)==0:
         length = len(L_umls)
-    elif (len(L_umls)<20):
-        length = 20
     else:
         length = len(L_umls) + 1
         
@@ -53,7 +51,7 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
                 
             # Printing checkpoints
             count +=1
-            if (count%int(np.floor(length/20)) == 0):
+            if (count%int(np.ceil(length/20)) == 0):
                 if logger:
                     logger.info(str(datetime.datetime.now().replace(microsecond=0)-b))
                     logger.info('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
@@ -91,7 +89,7 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
                 
             # Printing checkpoints
             count +=1
-            if (count%int(np.floor(length/20)) == 0):
+            if (count%int(np.ceil(length/20)) == 0):
                 if logger:
                     logger.info(str(datetime.datetime.now().replace(microsecond=0)-b))
                     logger.info('At couple number ' + str(count) + '/' + str(len(L_umls)) + '\n')
@@ -132,31 +130,28 @@ def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
     return storing_list
 
 
-def cos3mul(concept_L, concept_K, model, k_most_similar, storing_list):
+def cos3mul(concept_L, concept_K, model, storing_list, epsilon = 0.001):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
-    # The paper Levine et al., Linguistic Regularities in Sparse and Explicit Word Representations shows the equation for 
+    # The paper Levy et al., Linguistic Regularities in Sparse and Explicit Word Representations shows the equation for 
     # 3CosMul as the multiplicative version of 3CosAdd: 
-    # where 3CosAdd is b* - b = a* - a; b - a + *a = b*, the 3CosMul would be (b · a*)/ a ~ b*.
+    # where 3CosAdd is b* - b = a* - a; b - a + *a = b*, the 3CosMul would be (b x a*) x (a^-1) ~ b*.
     # Similar to our implementation of 3CosAdd, the implemented equation is: 
-    # L0 + K1 - L1 = K0 == b* - b + a = a*   ---->   (b* · a) / b ~ a*
+    # L0 + K1 - L1 = K0 == b* - b + a = a*   ---->   (b* x a) x b^-1 ~ a* . 
+    # Trying, the results are equivalent in both ways.
     #-----------------------------------------------------------------------------------------------------------
     #
     #
     #tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[1]], negative=[concept_L[1]], topn=n_Vemb_subset)))[0]
-    for word in tmp:
-        #var = ((model.similarity(word, concept_L[1]) * model.similarity(word, concept_K[0]))/(epsilon +
-        #      model.similarity(word, concept_K[1])))       
-        #concept_zero = model.similar_by_vector((concept_L[1] * concept_K[0])/ (concept_K[1]), topn=k_most_similar)
-        #result_3cosmul = model.similar_by_vector((vec2 * vec3)/ (vec4), topn=5)
-        concept_zero = model.similar_by_vector((concept_L[0] * concept_K[1])/ (concept_L[1]), topn=k_most_similar)
-        #result_3cosmul = model.similar_by_vector((vec1 * vec4)/ (vec2), topn=5)
-        if concept_K[0] in concept_zero:
-            storing_list.append((concept_L, concept_K,  1))
-        else:
-            storing_list.append((concept_L, concept_K,  0))
-        return storing_list
+    var = ((model.similarity(concept_L[0], concept_L[1]) * model.similarity(concept_L[0], concept_K[0]))/
+           (epsilon + model.similarity(concept_L[0], concept_K[1])))
+    
+    #var_ = ((model.similarity(concept_K[0], concept_L[0]) * model.similarity(concept_K[0], concept_K[1]))/
+    #       (epsilon + model.similarity(concept_K[0], concept_L[1])))
+
+    storing_list.append((concept_L, concept_K,  var))
+    return storing_list
 
 
 
