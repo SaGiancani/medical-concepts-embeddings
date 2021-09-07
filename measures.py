@@ -41,9 +41,7 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     
     if emb_type == 'cui':
         for concept_L in L_umls:
-            temporary = [concept_L[0], concept_L[1]]
             for concept_K in K_umls:
-                temporary_ = temporary + [concept_K[0], concept_K[1]]
                 # This check returns a number of analogy computed fewer than the number of starting pairs (K and L)
                 if concept_L != concept_K:
                     #if len(check)==0:
