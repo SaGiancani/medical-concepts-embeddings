@@ -126,7 +126,7 @@ def append_context2static(path = './Embeddings/staticized_biobert/'):
     #
     #
     #------------------------------------------------------------------------------------------------------------
-    # The method attaches the files created with parallel programming via context2static method.
+    # The method attaches the files created with multiprocessing logic via context2static method.
     #
     # It gets as input just the path of the folder with all the fragments in.
     #------------------------------------------------------------------------------------------------------------
