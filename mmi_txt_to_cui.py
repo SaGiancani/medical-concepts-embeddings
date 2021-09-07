@@ -194,7 +194,7 @@ def convert_sty_stymmi(dict_cui_sty, dict_sty=DICT_STY):
     
 
 
-def mmi_to_cui(stop_value = 400, mmi_file = 'paper_seed.txt.out', sty = False):
+def mmi_to_cui(stop_value = 400, mmi_file = 'Utilities/paper_seed.txt.out', sty = False):
     #
     #
     #-------------------------------------------------------------------------------------------------
@@ -253,7 +253,7 @@ def mmi_to_cui(stop_value = 400, mmi_file = 'paper_seed.txt.out', sty = False):
             
 
             
-def mmi_lite_freetext(free_text_file = 'paper_seed.txt', sty = False):
+def mmi_lite_freetext(free_text_file = 'Utilities/paper_seed.txt', sty = False):
     #
     #
     #---------------------------------------------------------------------------------------------------------
