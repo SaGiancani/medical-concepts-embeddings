@@ -1,5 +1,6 @@
 import datetime, itertools, utils
 import numpy as np
+from scipy import spatial
 
 
 def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
@@ -104,6 +105,7 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     return storing_list
         
 
+
 def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
     #
     #
@@ -126,6 +128,7 @@ def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
     else:
         storing_list.append((concept_L, concept_K,  0))
     return storing_list
+
 
 
 def cos3mul(concept_L, concept_K, model, storing_list, epsilon = 0.001):
@@ -560,7 +563,30 @@ def oov(d):
     return sum(o)
 
 
-    
+
+def pair_direction(concept_L, concept_K, model, storing_list, epsilon = 0.0001):
+    #
+    #
+    #-----------------------------------------------------------------------------------------------------------
+    # The paper Levy et al., Linguistic Regularities in Sparse and Explicit Word Representations formalized the
+    # equation as cos((b*-b),(a*-a)), used previously by Mikolov.
+    # This method reproduces the mathematical formalization by Levy et al.
+    #
+    # concept_L is the first pair, the couple b*-b, concept_K corresponds to the second pair, a*-a
+    # The epsilon var avoid the division by 0 in the cosine distance.
+    # The model is the embedding.
+    # 
+    # The method returns a list with cosine similarities.
+    #-----------------------------------------------------------------------------------------------------------
+    #
+    #
+    var = 1-spatial.distance.cosine((model[concept_L[0]]-model[concept_L[1]])+epsilon, 
+                                    (model[concept_K[0]]-model[concept_K[1]])+epsilon)
+    storing_list.append((concept_L, concept_K,  var))
+    return storing_list
+
+
+
 def percentage_dcg(d, k=1):
     #
     #
