@@ -1,9 +1,11 @@
 import datetime, itertools, utils
+from collections import defaultdict
 import numpy as np
 from scipy import spatial
 
 
-def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
+
+def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -13,7 +15,6 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     #
     # The L and K are list of pairs for a specific relation. The model is the gensim model of the considered
     # embedding. 
-    # k_most_similar is the value of k used for the k-NN.
     # The logger is not compulsary and it is used for debugging and keeping track of running scripts. It is 
     # tought for background running scripts.
     # dict_labels_for_L is compulsary only for emb_type = 'labels' case. It is the dictionary with all
@@ -24,7 +25,7 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
     #
     #
     ab = datetime.datetime.now().replace(microsecond=0)
-    storing_list = []
+    storing_list = defaultdict(list)
     count = 0
     print(np.shape(L_umls))
     print(np.shape(K_umls))
@@ -46,8 +47,10 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
                 # This check returns a number of analogy computed fewer than the number of starting pairs (K and L)
                 if concept_L != concept_K:
                     #if len(check)==0:
-                    storing_list = cos3add(concept_L, concept_K, model, k_most_similar, storing_list)
-                
+                    for key, function in metrics.items():
+                        val = function[0](concept_L, concept_K, model, function[1])
+                        storing_list[key].append((concept_L, concept_K,  val))
+
             # Printing checkpoints
             count +=1
             if (count%int(np.ceil(length/20)) == 0):
@@ -69,22 +72,36 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
                 temporary_ = temporary + [dict_labels_for_L[concept_K[0]], dict_labels_for_L[concept_K[1]]]
                 # Combination of all the labels in pairs
                 kl = list(itertools.product(*temporary_))
-                tmp_store = []
-                # This loop is modifiable: loop over kl in place of range(len(kl)) 
-                for i in range(len(kl)):
-                    # The two pairs have to be different
-                    if (kl[i][0], kl[i][1]) != (kl[i][2], kl[i][3]):
-                        #if len(check)==0:
-                        tmp_store = cos3add((kl[i][0], kl[i][1]), # the L-pair
-                                            (kl[i][2], kl[i][3]), # the K-pair
-                                            model, 
-                                            k_most_similar, 
-                                            tmp_store)
-                        # The last element, if 1, is taken and the loop is broken. 
-                        # Otherwise is taken the last one
-                        if (tmp_store[-1][-1] == 1) | (len(tmp_store) == len(kl)):
-                            storing_list.append(tmp_store[-1])
-                            break
+                # This loop is modifiable: loop over kl in place of range(len(kl))
+                if concept_L != concept_K:
+                    # The loop is for avoiding a switch-case statement, but has the same goal
+                    for key, function in metrics.items():
+                        tmp_store = []
+                        if key == 'add':
+                            for i in kl:
+                                # The two pairs have to be different
+                                val = function[0]((i[0], i[1]), # the L-pair
+                                                  (i[2], i[3]), # the K-pair
+                                                  model, 
+                                                  function[1])
+                                tmp_store.append(((i[0], i[1]),
+                                                  (i[2], i[3]),
+                                                  val))
+                                # The last element, if 1, is taken and the loop is broken. 
+                                # Otherwise is taken the last one
+                                if (tmp_store[-1][-1] == 1) | (len(tmp_store) == len(kl)):
+                                    storing_list[key].append(tmp_store[-1])
+                                    break
+                            
+                        # If the metric is not 'add':
+                        else:
+                            for i in kl:
+                                val = function[0]((i[0], i[1]), # the L-pair
+                                                  (i[2], i[3]), # the K-pair 
+                                                  model, 
+                                                  function[1])
+                                tmp_store.append(val)
+                            storing_list[key].append((concept_L, concept_K, utils.aggregation_values(tmp_store)))
                 
             # Printing checkpoints
             count +=1
@@ -106,7 +123,7 @@ def analogy_compute(L_umls, K_umls, model, k_most_similar, logger = None, dict_l
         
 
 
-def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
+def cos3add(concept_L, concept_K, model, k_most_similar):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -124,14 +141,12 @@ def cos3add(concept_L, concept_K, model, k_most_similar, storing_list):
     #
     tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[1]], negative=[concept_L[1]], topn=k_most_similar)))[0]
     if concept_K[0] in tmp:
-        storing_list.append((concept_L, concept_K,  1))
+        return 1
     else:
-        storing_list.append((concept_L, concept_K,  0))
-    return storing_list
+        return 0
 
 
-
-def cos3mul(concept_L, concept_K, model, storing_list, epsilon = 0.001):
+def cos3mul(concept_L, concept_K, model, epsilon = 0.0001):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -151,8 +166,7 @@ def cos3mul(concept_L, concept_K, model, storing_list, epsilon = 0.001):
     #var_ = ((model.similarity(concept_K[0], concept_L[0]) * model.similarity(concept_K[0], concept_K[1]))/
     #       (epsilon + model.similarity(concept_K[0], concept_L[1])))
 
-    storing_list.append((concept_L, concept_K,  var))
-    return storing_list
+    return var
 
 
 
@@ -252,13 +266,23 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
     l_x = np.array(list(zip(*L_umls_rel))[0])
     l_y = np.array(list(zip(*L_umls_rel))[1])
     l_stacked = np.stack((l_x, l_y))
+    
     k_x = np.array(list(zip(*K_umls_rel))[0])
     k_y = np.array(list(zip(*K_umls_rel))[1])
-
     k_stacked = np.stack((k_x, k_y))
+    
     stacked = [l_stacked, k_stacked]
 
     q = []
+    
+    # Optimization for the case where L and K are the same, for avoiding a doubled computation
+    if L_umls_rel == K_umls_rel:
+        var = [[l_x, l_y]]
+        print('L=k')
+    else:
+        var = [[l_x, l_y], [k_x, k_y]]
+        print('L!=k')
+        
     if emb_type == 'cui':
         # Extraction Vemb
         Vemb = np.array(list(utils.extract_w2v_vocab(model)))
@@ -267,7 +291,7 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
         # Sorting Vemb in a growing way. I dont understand the meaning with strings
         sorted_Vemb = Vemb[index]        
         # Making presence masks for discarding pairs oov by the Vemb 
-        for j in [[l_x, l_y], [k_x, k_y]]:
+        for j in var:
             temp = []
             # with j the two elements of pair
             for i in j:
@@ -289,7 +313,7 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
         # Polishing the set L keeping only concepts having labels IoV
         #dict_labels_iov = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
         # Making presence masks for discarding pairs oov by the Vemb
-        for j in [[l_x, l_y], [k_x, k_y]]:
+        for j in var:
             temp = []
             for i in j:
                 # Keep track the concepts which dont follow the condition: False for the ones 
@@ -317,13 +341,18 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
             tu.append(new_k_umls)
         else:
             tu.append([])
-                
+        
     print(datetime.datetime.now().replace(microsecond=0)-ab) 
     if logger:
         logger.info(str(datetime.datetime.now().replace(microsecond=0)-ab))
     
+    if len(tu) == 1:
+        print(len(tu[0]))
+        return list(set(tu[0])), list(set(tu[0]))
+    
+    print(len(tu[0]))
     # Returning data with same format of input
-    return tu[0], tu[1]
+    return list(set(tu[0])), list(set(tu[1]))
 
 
 def max_dcg(k_neighs, sub = 2):
@@ -564,7 +593,7 @@ def oov(d):
 
 
 
-def pair_direction(concept_L, concept_K, model, storing_list, epsilon = 0.0001):
+def pair_direction(concept_L, concept_K, model, epsilon = 0.0001):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -582,8 +611,7 @@ def pair_direction(concept_L, concept_K, model, storing_list, epsilon = 0.0001):
     #
     var = 1-spatial.distance.cosine((model[concept_L[0]]-model[concept_L[1]])+epsilon, 
                                     (model[concept_K[0]]-model[concept_K[1]])+epsilon)
-    storing_list.append((concept_L, concept_K,  var))
-    return storing_list
+    return var
 
 
 
