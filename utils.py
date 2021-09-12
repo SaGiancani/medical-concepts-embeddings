@@ -1,7 +1,30 @@
 import csv, datetime, logging, mmap, sys
+import numpy as np
+from scipy import stats
 import pandas as pd
 import pickle  
 
+    
+def aggregation_values(values_to_aggregate):
+    #
+    #
+    #------------------------------------------------------------------------------------------------------------------
+    # The method allows to have a statistical frame of labels processing for analogy computation, and basically it is
+    # a wrapper of several statistical values.
+    #
+    # max, min, mean, mode, upper, median and bottom quartiles 
+    # They are useful for describing the cos3mul and pair_direction for labels
+    #------------------------------------------------------------------------------------------------------------------
+    #
+    #
+    maximum = np.max(values_to_aggregate)
+    minumum = np.min(values_to_aggregate)
+    mean = np.mean(values_to_aggregate)
+    mode = stats.mode(values_to_aggregate[:])[0][0]
+    lower_quart = np.quantile(values_to_aggregate, .25)
+    median = np.median(values_to_aggregate)
+    upper_quart = np.quantile(values_to_aggregate, .75)
+    return [maximum, minumum, mean, mode, lower_quart, median, upper_quart]
     
 def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
     #
