@@ -287,13 +287,17 @@ if __name__ == '__main__':
     
     # Building the dictionary for labels case
     # Collecting all the CUIs involved in set L
-    jh = []
-    for v in L_umls.values():
-        jh.append(list(set(list(zip(*v))[0])))
-        jh.append(list(set(list(zip(*v))[1])))
-        tmp = set([j for i in jh for j in i ])
-    dict_strings = umls_tables_processing.cui_strings()    
-    dict_labels_for_L, _ = umls_tables_processing.extracting_strings(list(tmp), dict_strings = dict_strings)
+    if (args.embedding_type == 'words') | (args.embedding_type == 'both'):
+        jh = []
+        for v in L_umls.values():
+            jh.append(list(set(list(zip(*v))[0])))
+            jh.append(list(set(list(zip(*v))[1])))
+            tmp = set([j for i in jh for j in i ])
+        dict_strings = umls_tables_processing.cui_strings()    
+        dict_labels_for_L, _ = umls_tables_processing.extracting_strings(list(tmp), dict_strings = dict_strings)
+    
+    else:
+        dict_labels_for_L = None
     logger.info('Dictionary of labels from set L built\n')
     
     # Building the dictionary for the measure, in place of the switch-case logic
