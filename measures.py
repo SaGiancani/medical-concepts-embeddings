@@ -1,8 +1,9 @@
 import datetime, itertools, utils
 from collections import defaultdict
 import numpy as np
-from scipy import spatial
 
+from scipy import spatial
+from sklearn.decomposition import PCA
 
 
 def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
@@ -49,7 +50,7 @@ def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_f
                     #if len(check)==0:
                     for key, function in metrics.items():
                         val = function[0](concept_L, concept_K, model, function[1])
-                        storing_list[key].append((concept_L, concept_K,  val))
+                        storing_list[key].append(val)
 
             # Printing checkpoints
             count +=1
@@ -84,12 +85,10 @@ def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_f
                                                   (i[2], i[3]), # the K-pair
                                                   model, 
                                                   function[1])
-                                tmp_store.append(((i[0], i[1]),
-                                                  (i[2], i[3]),
-                                                  val))
+                                tmp_store.append(val)
                                 # The last element, if 1, is taken and the loop is broken. 
                                 # Otherwise is taken the last one
-                                if (tmp_store[-1][-1] == 1) | (len(tmp_store) == len(kl)):
+                                if (tmp_store[-1] == 1) | (len(tmp_store) == len(kl)):
                                     storing_list[key].append(tmp_store[-1])
                                     break
                             
@@ -101,7 +100,7 @@ def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_f
                                                   model, 
                                                   function[1])
                                 tmp_store.append(val)
-                            storing_list[key].append((concept_L, concept_K, utils.aggregation_values(tmp_store)))
+                            storing_list[key].append(utils.aggregation_values(tmp_store))
                 
             # Printing checkpoints
             count +=1
@@ -120,7 +119,6 @@ def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_f
         logger.info(str(datetime.datetime.now().replace(microsecond=0)-ab))
     print(datetime.datetime.now().replace(microsecond=0)-ab) 
     return storing_list
-        
 
 
 def cos3add(concept_L, concept_K, model, k_most_similar):
@@ -647,7 +645,33 @@ def pos_dcg(d, normalization = False, norm_fact=1):
         return a/(len(d)*norm_fact)
     else:
         return a
-
+        
+    
+def relation_direction(model, seed_pairs):
+    #
+    #
+    #-----------------------------------------------------------------------------------------------------------
+    # The following code is taken by https://github.com/rishibommasani/Contextual2Static .
+    # The method computes the first principal component given a seed of couples.
+    #
+    # Originally thought for bias direction, related to genres, races, and religions, in our case it is applied
+    # to a direction for an UMLS relationship.
+    # The two vectors from the embedding per couple of concepts/words are extracted. The difference for each couple
+    # is computed, obtaining a direction for the couple, represented by a vector.
+    # A list of "directions" is obtained: the PCA is computed on it.
+    #
+    # The method gets as input an embedding model, CUI2Vec or Word2Vec, and a list of couples.
+    # The method returns the first principal component, given the seed of couples.
+    #-----------------------------------------------------------------------------------------------------------
+    #
+    #
+    a = datetime.datetime.now().replace(microsecond=0)
+    diff_embeddings = [model[x] - model[y] for x,y in seed_pairs]
+    X = np.array(diff_embeddings)
+    pca = PCA(n_components=1)
+    pca.fit(X)
+    print(datetime.datetime.now().replace(microsecond=0)-a)
+    return pca.components_[0]
         
     
 def take_most_similar(model, seed, seeds, k_most_similar=10, counter=0):
