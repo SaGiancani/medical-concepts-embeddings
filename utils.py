@@ -24,7 +24,7 @@ def aggregation_values(values_to_aggregate):
     lower_quart = np.quantile(values_to_aggregate, .25)
     median = np.median(values_to_aggregate)
     upper_quart = np.quantile(values_to_aggregate, .75)
-    return [maximum, minumum, mean, mode, lower_quart, median, upper_quart]
+    return [maximum, minumum, mean, mode, lower_quart, median, upper_quart, len(values_to_aggregate)]
     
 def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
     #
