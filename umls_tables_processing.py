@@ -9,31 +9,44 @@ MRREL = 'UMLS_data/MRREL.RRF'
 MRSTY = 'UMLS_data/MRSTY.RRF'
 
 # Some relationships are discarded: this is a subset of all_copd_relations, almost the half of them were an overkill
-USEFUL_RELA = ['associated_finding_of',
-               'associated_morphology_of',
-               'associated_with_malfunction_of_gene_product',
-               'clinical_course_of',
-               'contraindicated_with_disease',
-               'course_of',
-               'disease_has_associated_anatomic_site',
-               'disease_has_associated_gene',
-               'finding_site_of',
-               'gene_associated_with_disease',
-               'gene_product_malfunction_associated_with_disease', 
-               'has_associated_finding',
-               'has_associated_morphology',
-               'has_clinical_course',
-               'has_contraindicated_drug', 
-               'has_course',
-               'has_finding_site',
-               'has_manifestation',
+USEFUL_RELA = ['associated_finding_of',#
+               'associated_morphology_of',#
+               'associated_with_malfunction_of_gene_product',#
+               'clinical_course_of',#
+               'contraindicated_with_disease',#
+               'course_of',#
+               'disease_has_associated_anatomic_site',#
+               'disease_has_associated_gene',#
+               'finding_site_of',#
+               'gene_associated_with_disease',#
+               'gene_product_malfunction_associated_with_disease', #
+               'has_associated_finding', #
+               'has_associated_morphology',#
+               'has_clinical_course',#
+               'has_contraindicated_drug', #
+               'has_course',#
+               'has_finding_site',#
+               'has_manifestation',#
                #     'inverse_isa',
-               'is_associated_anatomic_site_of',
+               'is_associated_anatomic_site_of',#
                #     'isa',
-               'manifestation_of',
-               'may_be_treated_by', 
+               'manifestation_of',#
+               'may_be_treated_by', #
                'may_treat']#,
                #'']
+    
+# The same USEFUL_RELA disposed per semantic pairs.        
+OPPOSITE_RELAS = [('associated_finding_of', 'has_associated_finding'),
+                  ('associated_morphology_of', 'has_associated_morphology'),
+                  ('associated_with_malfunction_of_gene_product', 'gene_product_malfunction_associated_with_disease'),
+                  ('clinical_course_of', 'has_clinical_course'),
+                  ('contraindicated_with_disease', 'has_contraindicated_drug'),
+                  ('course_of', 'has_course'),
+                  ('disease_has_associated_anatomic_site', 'is_associated_anatomic_site_of'),
+                  ('disease_has_associated_gene', 'gene_associated_with_disease'),
+                  ('finding_site_of', 'has_finding_site'),
+                  ('manifestation_of', 'has_manifestation'),
+                  ('may_treat', 'may_be_treated_by')]
 
 def count_relationships(mrrel_path = MRREL, rel_type = 'RELA'):
     #
