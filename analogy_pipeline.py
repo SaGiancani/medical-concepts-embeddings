@@ -153,25 +153,55 @@ def analog_pipe(L, K,
     for type_emb in embeddings:
         b = datetime.datetime.now().replace(microsecond=0)
         if parallel:
-            args = []
-            for emb in type_emb[1]:
-            # Instantiation of args for multiprocessing run
-                args.append((PATH_EMBEDDINGS+type_emb[0]+emb,
-                             emb.endswith('.bin'),
-                             os.path.splitext(emb)[0],
-                             type_emb[0], 
-                             L, K,
-                             K_type,
-                             logger,
-                             analog_comp_dict,
-                             #sets_relations,
-                             metrics,
-                             dict_labels_for_L)) 
+            # Multiprocessing logic for evaluating at the same time K for only copd related concepts
+            # and for seed related concepts
+            # If processes are more than 4, the performance is low given the expensive memory cost
+            if len(type_emb[1]) > 4:
+                # Processes set at 2
+                processes = 2
+                # Elements of a chunk
+                #n = int(np.ceil(len(embeddings[1][1])/processes))
+                n = processes
+                # A list of sublist with embedding names
+                chunk_embs = [type_emb[1][i:i + n] for i in range(0, len(type_emb[1]), n)]
+                print(chunk_embs)
+                for chunk in chunk_embs:
+                    inp = []
+                    for title in chunk:
+                        # Creation of a process for each embedding (max two embeddings)
+                        inp.append((PATH_EMBEDDINGS+type_emb[0]+title,
+                                    title.endswith('.bin'),
+                                    os.path.splitext(title)[0],
+                                    type_emb[0], 
+                                    L, K,
+                                    K_type,
+                                    logger,
+                                    analog_comp_dict,
+                                    #sets_relations,
+                                    metrics,
+                                    dict_labels_for_L))
+                
+                    with Pool(processes = n) as pool:
+                        pool.starmap(analog_loop, inp)                 
+            else:
+                args = []
+                for emb in type_emb[1]:
+                    # Instantiation of args for multiprocessing run
+                    args.append((PATH_EMBEDDINGS+type_emb[0]+emb,
+                                 emb.endswith('.bin'),
+                                 os.path.splitext(emb)[0],
+                                 type_emb[0], 
+                                 L, K,
+                                 K_type,
+                                 logger,
+                                 analog_comp_dict,
+                                 #sets_relations,
+                                 metrics,
+                                 dict_labels_for_L)) 
+                    
                 logger.info('Preprocessing finished and multiprocessing running started\n')
-                # Multiprocessing logic for evaluating at the same time K for only copd related concepts
-                # and for seed related concepts
-            with Pool(processes = len(args)) as pool:
-                pool.starmap(analog_loop, args) 
+                with Pool(processes = len(args)) as pool:
+                    pool.starmap(analog_loop, args) 
         else:
             for emb in type_emb[1]:
                 analog_loop(PATH_EMBEDDINGS+type_emb[0]+emb, 
