@@ -20,11 +20,12 @@ def aggregation_values(values_to_aggregate):
     maximum = np.max(values_to_aggregate)
     minumum = np.min(values_to_aggregate)
     mean = np.mean(values_to_aggregate)
+    std_dev = np.std(values_to_aggregate)
     mode = stats.mode(values_to_aggregate[:])[0][0]
     lower_quart = np.quantile(values_to_aggregate, .25)
     median = np.median(values_to_aggregate)
     upper_quart = np.quantile(values_to_aggregate, .75)
-    return [maximum, minumum, mean, mode, lower_quart, median, upper_quart, len(values_to_aggregate)]
+    return [maximum, minumum, mean, std_dev, mode, lower_quart, median, upper_quart, len(values_to_aggregate)]
     
 def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
     #
