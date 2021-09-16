@@ -73,7 +73,6 @@ def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_f
                 temporary_ = temporary + [dict_labels_for_L[concept_K[0]], dict_labels_for_L[concept_K[1]]]
                 # Combination of all the labels in pairs
                 kl = list(itertools.product(*temporary_))
-                # if in future different result, for this set
                 kl = list(set(kl))
                 # This loop is modifiable: loop over kl in place of range(len(kl))
                 if concept_L != concept_K:
