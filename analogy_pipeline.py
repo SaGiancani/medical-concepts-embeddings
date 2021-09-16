@@ -62,7 +62,7 @@ def analog_loop(path,
             #else:
             #    analog_comp_dict[name][rela] = (0, len(tmp))                        
 
-            utils.inputs_save(dict_t, 'Utilities/' + name + K_type)                    
+            utils.inputs_save(dict_t, 'Utilities/Analogical Data/' + name + K_type)                    
             #utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
             
             # Log of end of 'relation' operation
@@ -106,7 +106,7 @@ def analog_loop(path,
             #else:
             #    analog_comp_dict[name][rela] = (0, len(tmp))
                         
-            utils.inputs_save(dict_t, 'Utilities/' + name + K_type)                    
+            utils.inputs_save(dict_t, 'Utilities/Analogical Data/' + name + K_type)                    
             #utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
                     
             logger.info('The time for RELA %s, for embedding %s is %s', 

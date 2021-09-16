@@ -198,7 +198,7 @@ if __name__ == '__main__':
                     str(datetime.datetime.now().replace(microsecond=0)-timer_emb))
         
     # Storing data
-    utils.inputs_save(full, 'Utilities/rel_direction_data')
+    utils.inputs_save(full, 'Utilities/Relation Direction Data/rel_direction_data')
     # End
     logger.info('Execution time of relation direction computation is: %s\n',
                 str(datetime.datetime.now().replace(microsecond=0) - start))
