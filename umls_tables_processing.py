@@ -138,7 +138,8 @@ def concepts_related_to_concept(mrrel_path = MRREL,
                                 two_way = True, 
                                 polishing_rels = False,
                                 switch_key= 'con',
-                                extract_labels = False):
+                                extract_labels = False,
+                                all_labels = True):
     #
     #
     #----------------------------------------------------------------------------------------------------
@@ -205,10 +206,17 @@ def concepts_related_to_concept(mrrel_path = MRREL,
     # If True, extracting labels -preferred and not- inside the method        
     if extract_labels:
         time_extract = datetime.datetime.now().replace(microsecond=0)
-        dict_conso = utils.inputs_load(DICT_CONSO)
+        
+        # If all labels, preferred and not
+        if all_labels:
+            dict_conso = utils.inputs_load(DICT_CONSO)
+        # If only preferred labels
+        else:
+            dict_conso = cui_strings(all_labels = all_labels)
+            
         cuis = list(set([i for k,v in tmpd.items() for i in v]))
         print(len(cuis))
-        h, _ = extracting_strings(cuis, dict_conso)
+        h, _ = extracting_strings(cuis, dict_strings = dict_conso)
         l = {}
         for rel,cuis in tmpd.items():
             r = {i:h[i] for i in cuis}
@@ -229,7 +237,7 @@ def concepts_related_to_concept(mrrel_path = MRREL,
 
 
     
-def cui_strings(mrconso_path = MRCONSO):
+def cui_strings(mrconso_path = MRCONSO, all_labels = True):
     #
     #
     #-----------------------------------------------------------------------
@@ -254,25 +262,34 @@ def cui_strings(mrconso_path = MRCONSO):
             array = line.split('|')
             # Take the valuable data: cui, sui, string
             cui_item = array[0]
-            sui_item = array[5]
             string_item = array[14]
-            # Check on CUI: if the string's CUI is not inside the dictionary 
-            # yet, come in
-            if cui_item not in dict_strings.keys():
-                # Temporary strings and SUIs lists for each CUI
-                list_tmp = []
-                sui_tmp = []
-                # Appending the SUI and strings inside the temporary list
-                sui_tmp.append(sui_item)
-                list_tmp.append(string_item)
-                # Inserting the string temporary list to the relative CUI
-                dict_strings[cui_item] = list_tmp
-            # If the string's CUI is already inside the dictionary
-            # and string is not considered yet, come in
-            elif (cui_item in dict_strings.keys()) & (sui_item not in sui_tmp):
-                # Appending SUIs
-                sui_tmp.append(sui_item)
-                dict_strings[cui_item].append(string_item)
+            
+            # Construction of a dictionary with all the labels, preferred and not
+            if all_labels:
+                sui_item = array[5]
+                # Check on CUI: if the string's CUI is not inside the dictionary 
+                # yet, come in
+                if cui_item not in dict_strings.keys():
+                    # Temporary strings and SUIs lists for each CUI
+                    list_tmp = []
+                    sui_tmp = []
+                    # Appending the SUI and strings inside the temporary list
+                    sui_tmp.append(sui_item)
+                    list_tmp.append(string_item)
+                    # Inserting the string temporary list to the relative CUI
+                    dict_strings[cui_item] = list_tmp
+                # If the string's CUI is already inside the dictionary
+                # and string is not considered yet, come in
+                elif (cui_item in dict_strings.keys()) & (sui_item not in sui_tmp):
+                    # Appending SUIs
+                    sui_tmp.append(sui_item)
+                    dict_strings[cui_item].append(string_item)
+                    
+            # Construction of a dictionary with only preferred labels
+            else:
+                if cui_item not in dict_strings.keys():
+                    # Inserting the string for the correspondent CUI
+                    dict_strings[cui_item] = [string_item]
     print(datetime.datetime.now().replace(microsecond=0)-a)
     return dict_strings 
 

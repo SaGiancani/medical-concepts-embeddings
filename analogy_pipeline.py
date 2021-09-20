@@ -142,7 +142,7 @@ def analog_pipe(L, K,
         cuis = ('/cuis/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/cuis') if (f.is_file())&(f.name != 'README.md')])
         embeddings.append(cuis)
         
-    elif (embedding_type == 'words') or (embedding_type == 'both'):
+    if (embedding_type == 'words') or (embedding_type == 'both'):
         logger.info('Word embeddings\n'), 
         labels = ('/words/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/words') if (f.is_file())&(f.name != 'README.md')])
         embeddings.append(labels)
@@ -275,6 +275,13 @@ if __name__ == '__main__':
                         type=str,
                         help='The requested measures')
     
+    parser.add_argument('--lab', 
+                        dest='all_labels',
+                        type=bool,
+                        default = False,
+                        required=False,
+                        help='Only preferred or all labels')
+    
     args = parser.parse_args()
     print(args)
     
@@ -323,7 +330,9 @@ if __name__ == '__main__':
             jh.append(list(set(list(zip(*v))[0])))
             jh.append(list(set(list(zip(*v))[1])))
             tmp = set([j for i in jh for j in i ])
-        dict_strings = umls_tables_processing.cui_strings()    
+        # Construction of UMLS dictionary: for each CUI are picked the correspondent labels.
+        # all_labels handle the choice among all the possible labels and only the preferred one.
+        dict_strings = umls_tables_processing.cui_strings(all_labels = args.all_labels)
         dict_labels_for_L, _ = umls_tables_processing.extracting_strings(list(tmp), dict_strings = dict_strings)
     
     else:
