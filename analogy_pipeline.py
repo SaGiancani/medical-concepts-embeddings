@@ -230,6 +230,20 @@ def analog_pipe(L, K,
 
     
 def cardinality_kl(embeddings, useful_rela, L_umls, K_umls, dict_labels_for_L = None):
+    #
+    #
+    #----------------------------------------------------------------------------------------------------------------
+    # The method returns a pickle dictionary variable reusable by other methods for plotting.
+    #
+    # It gets as input a list of strings, with the names of analyzed embeddings, a list of analyzed relationships
+    # and two pairs sets, K and L. The variable dict_labels_for_L is not compulsary: it is used only by the filtering
+    # k_n_l_iov method for w2v embeddings.
+    #
+    # The method return informations about the cardinality of original UMLS sets and the filtered IoV one, given an 
+    # embedding.
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #
     a = datetime.datetime.now().replace(microsecond=0)
     sets_relations_k = {}
     sets_relations_l = {}
@@ -276,9 +290,9 @@ def cardinality_kl(embeddings, useful_rela, L_umls, K_umls, dict_labels_for_L = 
     print('Execution time : ' + str(datetime.datetime.now().replace(microsecond=0) - a) + '\n')
     
 
-def processing_analog_pipe_outcome(cardinality_relations,
-                                   name_emb, 
-                                   dict_information = utils.inputs_load(SAVING_PATH+'k_cardinality_per_rel')):
+def processing_analog_pipe_outcome(name_emb, 
+                                   dict_information,
+                                   cardinality_relations = utils.inputs_load(SAVING_PATH+'k_cardinality_per_rel')):
     #
     #
     #-----------------------------------------------------------------------------------------------------------
@@ -293,12 +307,12 @@ def processing_analog_pipe_outcome(cardinality_relations,
     #
     #
     dict_out = {}
-    for rela in umls_tables_processing.USEFUL_RELA:
-        count = sum(dict_information[list(dict_information.keys())[0]][rela]['add'])
+    for rela in list(dict_information[name_emb].keys()):
+        count = sum(dict_information[name_emb][rela]['add'])
         occurrences = len(dict_information[list(dict_information.keys())[0]][rela]['add'])
         kiov_cardin = cardinality_relations[rela][name_emb]
         k_umls_cardin = cardinality_relations[rela]['K wor']
-        dict_out[rela] = analog_comput_formula(kiov_cardin, k_umls_cardin, count, occurrences, rela)
+        dict_out[rela] = measures.analog_comput_formula(kiov_cardin, k_umls_cardin, count, occurrences, rela)
     return dict_out
 
     
