@@ -122,6 +122,26 @@ def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_f
     return storing_list
 
 
+def analog_comput_formula(kiov_cardin, k_umls_cardin, count, occurrences, rela, eps = 0.0001):
+    #
+    #
+    #----------------------------------------------------------------------------------------------
+    # The method implements the equation of our analogic formula.
+    #
+    # n°of occurred expected concepts[rela]/#Kiov[rela])*(#Kiov[rela]/#(K_umls[rela] \ Kiov[rela])
+    #
+    # In case k_umls_sub_iov == 0, a corrective factor epsilon of .0001 is added by default: the 
+    # case with #k_iov == #k_umls has to be boosted, not penalized.
+    #----------------------------------------------------------------------------------------------
+    #
+    #
+    k_umls_sub_iov = k_umls_cardin - kiov_cardin
+    if (occurrences == 0):
+        return 0
+    result= (count/occurrences)*(kiov_cardin/(k_umls_sub_iov+eps))   
+    return result
+
+
 def cos3add(concept_L, concept_K, model, k_most_similar):
     #
     #
@@ -143,7 +163,35 @@ def cos3add(concept_L, concept_K, model, k_most_similar):
         return 1
     else:
         return 0
+    
 
+def cos3add_custom_formula(dict_information, cardinality_relations, name_emb):
+    #
+    #
+    #-----------------------------------------------------------------------------------------------------------
+    # The method gets the variable obtained with analogy_pipeline script and performs the cos3add custom formula
+    # we designed. 
+    # The information for cardinality of several sets are taken by cardinality_relations variable, previously 
+    # computed. It is a dictionary where keys are relas and values lists of tuples, where each tuple represents 
+    # an embedding.
+    #
+    # N.B. #kiov does not count the same-couple analysis. The corrective factor is +1 
+    #-----------------------------------------------------------------------------------------------------------
+    #
+    #
+    dict_out = {}
+    for rela in umls_tables_processing.USEFUL_RELA:
+        count = sum(dict_information[list(dict_information.keys())[0]][rela]['add'])
+        occurrences = len(dict_information[list(dict_information.keys())[0]][rela]['add'])
+        kiov_cardin = cardinality_relations[rela][name_emb]
+        if kiov_cardin != 0:
+            k_umls_sub_iov = cardinality_relations[rela]['K wor'] - kiov_cardin
+            # FORMULA
+            dict_out[rela] = (count/occurrences)*(kiov_cardin/k_umls_sub_iov)
+        else:
+            dict_out[rela] = 0
+    return dict_out
+        
 
 def cos3mul(concept_L, concept_K, model, epsilon = 0.0001):
     #
