@@ -7,11 +7,12 @@ from gensim.test.utils import datapath
 
 
 PATH_EMBEDDINGS = './Embeddings'
+SAVING_PATH = 'Utilities/Relatedness Data/
+NAME_SAVED_FILE = 'relatedness_data_'
 
-def max_ks_loop(big_g, seeds, type_emb, model, name, logger):
-    
+def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False):
+    big_g[name]['max_k'] = {}    
     for seed in seeds:
-        big_g[name]['max_k'] = {}
         Vemb = utils.extract_w2v_vocab(model)
         if type_emb[0]=='/cuis/':
             k = len(list(set(Vemb).intersection(set(seed[1].keys()))))
@@ -31,21 +32,21 @@ def max_ks_loop(big_g, seeds, type_emb, model, name, logger):
                                        len(seed[1]), []]
 
         elif type_emb[0]=='/words/':
-            processed_seed = umls_tables_processing.discarding_labels_oov(Vemb, seed[1])
+            processed_seed = umls_tables_processing.discarding_labels_oov(Vemb, seed[1], all_labels = all_labels)
             k = sum([1 for k,v in processed_seed.items() if len(v)>0])
             if k <= 0:
                 k = 1
             d, _ = measures.occurred_labels(model, processed_seed, k_most_similar=k)
             big_g[name]['max_k'][seed[0]] = [measures.pos_dcg(d, 
-                                                        normalization = True,
-                                                        norm_fact = measures.max_dcg(k)),
-                                       measures.neg_dcg(d,
-                                                        normalization = True,
-                                                        norm_fact = measures.max_dcg(k)),
-                                       measures.percentage_dcg(d, k=k),
-                                       k,
-                                       measures.oov(d),
-                                       len(seed[1]), []]
+                                                              normalization = True,
+                                                              norm_fact = measures.max_dcg(k)),
+                                             measures.neg_dcg(d,
+                                                              normalization = True,
+                                                              norm_fact = measures.max_dcg(k)),
+                                             measures.percentage_dcg(d, k=k),
+                                             k,
+                                             measures.oov(d),
+                                             len(seed[1]), []]
             
         logger.info('%s: pos_dcg: %.4f, neg_dcg: %.4f, perc_dcg: %.4f, iov/k-NN: %d, oov: %d, #seed: %d\n', 
                     seed[0],
@@ -58,7 +59,7 @@ def max_ks_loop(big_g, seeds, type_emb, model, name, logger):
     return big_g
 
 
-def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch):
+def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch, all_labels = False):
     big_g = {}
     a = datetime.datetime.now().replace(microsecond=0)
 
@@ -82,7 +83,9 @@ def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch):
                                                    len(seed[1]), []]
                         
                     elif type_emb[0]=='/words/':
-                        d, new_seed = measures.occurred_labels(model, seed[1], k_most_similar=k)
+                        Vemb = utils.extract_w2v_vocab(model)
+                        processed_seed = umls_tables_processing.discarding_labels_oov(Vemb, seed[1], all_labels = all_labels)
+                        d, new_seed = measures.occurred_labels(model, processed_seed, k_most_similar=k)
                         big_g[name][k][seed[0]] = [measures.pos_dcg(d, normalization = True, norm_fact = measures.max_dcg(k)),
                                                    measures.neg_dcg(d, normalization = True, norm_fact = measures.max_dcg(k)),
                                                    measures.percentage_dcg(d, k=k),
@@ -112,10 +115,9 @@ def relatedness_pipeline(logger, all_labels, ks, embedding_type, seed_type, max_
     seeds = []
     
     # Construction of UMLS dictionary: for each CUI are picked the correspondent labels.
-    # all_labels handle the choice among all the possible labels and only the preferred one.
-    dict_conso = umls_tables_processing.cui_strings(all_labels = all_labels)
+    dict_conso = umls_tables_processing.cui_strings()
     
-    # seed buildingi: all the concepts at one hop from copd are picked
+    # Seed building: all the concepts at one hop from copd are picked
     copd_dict = umls_tables_processing.concepts_related_to_concept(two_way = True, extract_labels = False )
     copd_cuis = list(copd_dict.keys())
     
@@ -158,9 +160,9 @@ def relatedness_pipeline(logger, all_labels, ks, embedding_type, seed_type, max_
                         
     
     if all_labels:
-        utils.inputs_save(big_g, 'Utilities/Relatedness Data/relatedness_data_all_lab')
+        utils.inputs_save(big_g, SAVING_PATH + NAME_SAVED_FILE + 'all_lab'+str(datetime.datetime.now()))
     else:
-        utils.inputs_save(big_g, 'Utilities/Relatedness Data/relatedness_data_onlypreflab')
+        utils.inputs_save(big_g, SAVING_PATH + NAME_SAVED_FILE + 'onlypreflab'+str(datetime.datetime.now()))
     
     logger.info('Data stored correctly!')
     
