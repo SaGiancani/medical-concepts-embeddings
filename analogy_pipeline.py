@@ -6,6 +6,8 @@ import numpy as np
 from gensim.models import KeyedVectors, Word2Vec
 from gensim.test.utils import datapath
 
+PATH_EMBEDDINGS = './Embeddings'
+SAVING_PATH = 'Utilities/Analogical Data/'
 
 def analog_loop(path, 
                 binary_bool,
@@ -16,7 +18,8 @@ def analog_loop(path,
                 analog_comp_dict,
                 #sets_relations,
                 metrics,
-                dict_labels_for_L = None):
+                dict_labels_for_L = None,
+                all_labels = False):
     
     # Load the w2v model
     model = KeyedVectors.load_word2vec_format(path, binary=binary_bool)
@@ -62,7 +65,7 @@ def analog_loop(path,
             #else:
             #    analog_comp_dict[name][rela] = (0, len(tmp))                        
 
-            utils.inputs_save(dict_t, 'Utilities/Analogical Data/' + name + K_type)                    
+            utils.inputs_save(dict_t, SAVING_PATH + name + K_type+str(datetime.datetime.now()))                    
             #utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
             
             # Log of end of 'relation' operation
@@ -77,7 +80,9 @@ def analog_loop(path,
             
             # Filter the dictionary of labels keeping only the labels-words present into the embedding
             Vemb =utils.extract_w2v_vocab(model)
-            dict_labels_inters_vemb = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
+            dict_labels_inters_vemb = umls_tables_processing.discarding_labels_oov(Vemb, 
+                                                                                   dict_labels_for_L,
+                                                                                   all_labels = all_labels)
             # Filtering L and K sets for present labels inside the embedding
             l0, k0 = measures.k_n_l_iov(L[rela], 
                                         K[rela],
@@ -106,7 +111,7 @@ def analog_loop(path,
             #else:
             #    analog_comp_dict[name][rela] = (0, len(tmp))
                         
-            utils.inputs_save(dict_t, 'Utilities/Analogical Data/' + name + K_type)                    
+            utils.inputs_save(dict_t, SAVING_PATH + name + K_type+str(datetime.datetime.now()))                    
             #utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
                     
             logger.info('The time for RELA %s, for embedding %s is %s', 
@@ -121,7 +126,8 @@ def analog_pipe(L, K,
                 K_type,
                 metrics,
                 parallel = False,
-                embedding_type = 'both'):
+                embedding_type = 'both', 
+                all_labels = False):
     
     a = datetime.datetime.now().replace(microsecond=0)
     
@@ -133,7 +139,6 @@ def analog_pipe(L, K,
 #    print('Numbers of pairs for relationships stored')
     
     # Loading w2v files
-    PATH_EMBEDDINGS = './Embeddings'
     embeddings = []
     
     # CUI or Word Embeddings discrimination
@@ -179,7 +184,8 @@ def analog_pipe(L, K,
                                     analog_comp_dict,
                                     #sets_relations,
                                     metrics,
-                                    dict_labels_for_L))
+                                    dict_labels_for_L, 
+                                    all_labels))
                 
                     with Pool(processes = n) as pool:
                         pool.starmap(analog_loop, inp)                 
@@ -197,7 +203,8 @@ def analog_pipe(L, K,
                                  analog_comp_dict,
                                  #sets_relations,
                                  metrics,
-                                 dict_labels_for_L)) 
+                                 dict_labels_for_L, 
+                                 all_labels)) 
                     
                 logger.info('Preprocessing finished and multiprocessing running started\n')
                 with Pool(processes = len(args)) as pool:
@@ -220,6 +227,79 @@ def analog_pipe(L, K,
                     type_emb,
                     str(datetime.datetime.now().replace(microsecond=0)-b))      
     logger.info('Execution time of analog_pipe: ' + str(datetime.datetime.now().replace(microsecond=0) - a) + '\n')
+
+    
+def cardinality_kl(embeddings, useful_rela, L_umls, K_umls, dict_labels_for_L = None):
+    a = datetime.datetime.now().replace(microsecond=0)
+    sets_relations_k = {}
+    sets_relations_l = {}
+    # Loop over the relations
+    for type_emb in embeddings:
+        for emb in type_emb[1]:
+            model = KeyedVectors.load_word2vec_format(PATH_EMBEDDINGS+type_emb[0]+emb, binary=emb.endswith('.bin'))
+            name = os.path.splitext(emb)[0]
+            print('Embedding ' + str(name) + ' is analyzed')
+            for rela in useful_rela:
+                c = datetime.datetime.now().replace(microsecond=0)
+                # Check type of embedding
+                if type_emb[0]=='/cuis/':
+                    dict_labels_inters_vemb = None
+                    labs = 'cui'
+
+                # Check type of embedding: for word embeddings the dictionary of labels per cui is required
+                elif (type_emb[0]=='/words/') and (dict_labels_for_L is not None):
+                    # Filter the dictionary of labels keeping only the labels-words present into the embedding
+                    Vemb = utils.extract_w2v_vocab(model)
+                    dict_labels_inters_vemb = umls_tables_processing.discarding_labels_oov(Vemb, dict_labels_for_L)
+                    labs = 'labels'
+
+                # Filtering L and K sets for present labels inside the embedding
+                l0, k0 = measures.k_n_l_iov(L_umls[rela], 
+                                            K_umls[rela],
+                                            model, 
+                                            dict_labels_for_L = dict_labels_inters_vemb,
+                                            emb_type = labs)
+
+                # Store number of filtered pairs
+                sets_relations_l[rela] = {name: np.shape(l0)[0]}
+                sets_relations_k[rela] = {name: np.shape(k0)[0]}
+                print('Execution time for rela ' + rela + ' : ' + 
+                      str(datetime.datetime.now().replace(microsecond=0) - c) + '\n')
+                
+        sets_relations_l[rela] = {'L': np.shape(L_umls[rela])[0]}
+        sets_relations_k[rela] = {'K': np.shape(K_umls[rela])[0]}
+        sets_relations_l[rela] = {'L wor': np.shape(list(set(L_umls[rela])))[0]}
+        sets_relations_k[rela] = {'K wor': np.shape(list(set(K_umls[rela])))[0]}
+    
+    utils.inputs_save(sets_relations_l, SAVING_PATH + 'l_cardinality_per_rel'+str(datetime.datetime.now()))                
+    utils.inputs_save(sets_relations_k, SAVING_PATH + 'k_cardinality_per_rel'+str(datetime.datetime.now()))                
+    print('Execution time : ' + str(datetime.datetime.now().replace(microsecond=0) - a) + '\n')
+    
+
+def processing_analog_pipe_outcome(cardinality_relations,
+                                   name_emb, 
+                                   dict_information = utils.inputs_load(SAVING_PATH+'k_cardinality_per_rel')):
+    #
+    #
+    #-----------------------------------------------------------------------------------------------------------
+    # The method gets the variable obtained with analogy_pipeline script and performs the cos3add custom formula
+    # we designed: (n°of occurred expected concepts[rela]/#Kiov[rela])*(#Kiov[rela]/#(K_umls/Kiov[rela]))
+    # The information for cardinality of several sets are taken by cardinality_relations variable, previously 
+    # computed. It is a dictionary where keys are relas and values lists of tuples, where each tuple represents 
+    # an embedding.
+    #
+    # N.B. #kiov does not count the same-couple analysis. The corrective factor is +1 
+    #-----------------------------------------------------------------------------------------------------------
+    #
+    #
+    dict_out = {}
+    for rela in umls_tables_processing.USEFUL_RELA:
+        count = sum(dict_information[list(dict_information.keys())[0]][rela]['add'])
+        occurrences = len(dict_information[list(dict_information.keys())[0]][rela]['add'])
+        kiov_cardin = cardinality_relations[rela][name_emb]
+        k_umls_cardin = cardinality_relations[rela]['K wor']
+        dict_out[rela] = analog_comput_formula(kiov_cardin, k_umls_cardin, count, occurrences, rela)
+    return dict_out
 
     
 if __name__ == '__main__':
@@ -325,15 +405,16 @@ if __name__ == '__main__':
     # Building the dictionary for labels case
     # Collecting all the CUIs involved in set L
     if (args.embedding_type == 'words') | (args.embedding_type == 'both'):
-        jh = []
-        for v in L_umls.values():
-            jh.append(list(set(list(zip(*v))[0])))
-            jh.append(list(set(list(zip(*v))[1])))
-            tmp = set([j for i in jh for j in i ])
+        # This was an overkill: for discarding 15mb of concept couples two very similar dictionaries were uploaded
+        #jh = []
+        #for v in L_umls.values():
+        #    jh.append(list(set(list(zip(*v))[0])))
+        #    jh.append(list(set(list(zip(*v))[1])))
+        #    tmp = set([j for i in jh for j in i ])
         # Construction of UMLS dictionary: for each CUI are picked the correspondent labels.
         # all_labels handle the choice among all the possible labels and only the preferred one.
-        dict_strings = umls_tables_processing.cui_strings(all_labels = args.all_labels)
-        dict_labels_for_L, _ = umls_tables_processing.extracting_strings(list(tmp), dict_strings = dict_strings)
+        dict_labels_for_L = umls_tables_processing.cui_strings()
+        #dict_labels_for_L, _ = umls_tables_processing.extracting_strings(list(tmp), dict_strings = dict_strings)
     
     else:
         dict_labels_for_L = None
@@ -358,6 +439,7 @@ if __name__ == '__main__':
                 label_K, 
                 meas_dict,
                 parallel = args.paralleling,
-                embedding_type = args.embedding_type)
+                embedding_type = args.embedding_type, 
+                all_labels = args.all_labels)
     
     
