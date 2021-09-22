@@ -248,6 +248,11 @@ def cui_strings(mrconso_path = MRCONSO, all_labels = True):
     # The strings with same SUI are discarded: for doing this a list of SUIs
     # for each CUI is built. For each CUI a further check is performed on 
     # the SUI: only an unique SUI (string) is considered.
+    #
+    # A second strategy consists in picking only the first label-string, 
+    # ranked by UMLS as the representative word label for that concept.
+    # The two strategies are choosen according the all_labels bool variable
+    # True for all labels, False for only the first label
     #-----------------------------------------------------------------------
     #
     #
@@ -285,7 +290,7 @@ def cui_strings(mrconso_path = MRCONSO, all_labels = True):
                     sui_tmp.append(sui_item)
                     dict_strings[cui_item].append(string_item)
                     
-            # Construction of a dictionary with only preferred labels
+            # Construction of a dictionary with only preferred labels, aka the first one.
             else:
                 if cui_item not in dict_strings.keys():
                     # Inserting the string for the correspondent CUI
@@ -295,13 +300,16 @@ def cui_strings(mrconso_path = MRCONSO, all_labels = True):
 
 
 
-def discarding_labels_oov(emb_vocab, seed):
+def discarding_labels_oov(emb_vocab, seed, all_labels = True):
     #
     #
     #-------------------------------------------------------------------------------------------------
     # emb_vocab is a list containing the vocabulary of the analyzed embedding
     # seed is the classic dictionary with CUIs as keys and labels (preferred or not) as values
     # The method returns a polished seed, with only the labels contained inside the embedding vocabulary
+    #
+    # The boolean variable all_labels allows to pick all the word labels or only the ranked first
+    # IoV one.
     #-------------------------------------------------------------------------------------------------
     #
     #
@@ -310,8 +318,23 @@ def discarding_labels_oov(emb_vocab, seed):
     new_dict = {}
     for cui, labels in seed.items():
         new_dict[cui] = list(vemb.intersection(set(labels)))
-    print('Time for discarding labels: '+ str(datetime.datetime.now().replace(microsecond=0)-t))    
-    return new_dict
+    print('Time for discarding labels: '+ str(datetime.datetime.now().replace(microsecond=0)-t))
+    if all_labels:
+        return new_dict
+    else:
+        tmp_dict = {}
+        for cui, labels in seed.items():
+            # Building the indeces list of the labels for each concept
+            tmp = [labels.index(label) for label in new_dict[cui]]
+            # If the indeces list is not empty, the label with the minimum index is picked
+            if len(tmp)>0:
+                best_label = labels[min(tmp)]
+                tmp_dict[cui] = [best_label]
+            # else an empty list is returned
+            else:
+                tmp_dict[cui] = []
+        print('Time for labels processing: '+ str(datetime.datetime.now().replace(microsecond=0)-t))
+        return tmp_dict
 
 
 
