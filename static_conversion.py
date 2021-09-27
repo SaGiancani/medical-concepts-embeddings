@@ -6,6 +6,14 @@ from transformers import AutoModel, AutoTokenizer
 
 
 def build_static_matrix(start_index, stop_index, name, layer):
+    '''
+    --------------------------------------------------------------------------------------------------
+    The method extracts the words coming from the PMC-w2v vocabulary by BioBERT contextual model.
+    
+    It is an accesory method of context2static method implemented in contextual. It performs the 
+    processing of models, the loading and the logger prints.
+    --------------------------------------------------------------------------------------------------
+    '''
     # Logging instation for next time printing
     logger = utils.setup_custom_logger('myapp')
         

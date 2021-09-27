@@ -2,23 +2,21 @@ import datetime, os, torch, utils
 import numpy as np
 
 def tokenize_words(tokenizer, sentences, start, stop, attention_mask = False):
-    #
-    #
-    #------------------------------------------------------------------------------
-    # The method gets as input the tokenizer object built with transformers library
-    # and a list of sentences/composed words to convert into an embedding for 
-    # BERT processing.
-    #
-    # It returns a dictionary of elements ready to use as query for BERT models.
-    # 
-    # The dictionary has two keys:
-    # one, with values a list for the input_ids with the id of each token which
-    # form the choosen sentence/composed word.
-    # another one, with values for the attention_mask: it avoid to consider empty 
-    # id elements.
-    #------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ------------------------------------------------------------------------------
+    The method gets as input the tokenizer object built with transformers library
+    and a list of sentences/composed words to convert into an embedding for 
+    BERT processing.
+    
+    It returns a dictionary of elements ready to use as query for BERT models.
+     
+    The dictionary has two keys:
+    one, with values a list for the input_ids with the id of each token which
+    form the choosen sentence/composed word.
+    another one, with values for the attention_mask: it avoid to consider empty 
+    id elements.
+    ------------------------------------------------------------------------------
+    '''
     # Initializing timer
     a = datetime.datetime.now().replace(microsecond=0)
     
@@ -58,23 +56,21 @@ def tokenize_words(tokenizer, sentences, start, stop, attention_mask = False):
     return inputs
 
 def context2static(model, inputs, vocabs, start, stop, name = 'bio_bert', n_layer= 5, log = None):
-    #
-    #
-    #------------------------------------------------------------------------------------------------------------
-    # The method gets as input a contextual embedding model (BERT, GPT, etc.), a list of input tokens for 
-    # each sentence, a vocabulary of words (as a list) coming from static embedding, a start index value and a 
-    # stop index value, the string name used for saving the new context2static embedding and the layer of model
-    # choosen as vector.
-    #
-    # The method save automatically the extracted layer/vector, pooling it (with a mean) every token by dimension.
-    # It writes the result on a txt file, ready for the processin on gensim library (static embeddings library)
-    #
-    # A straightforward saving strategy is used for avoiding sudden crashes of operations, with relative lost of 
-    # data: this is requested by the long times of computation. This is a conservative approach, since it is 
-    # slower but more efficient in terms of stored data.
-    #------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ------------------------------------------------------------------------------------------------------------
+    The method gets as input a contextual embedding model (BERT, GPT, etc.), a list of input tokens for 
+    each sentence, a vocabulary of words (as a list) coming from static embedding, a start index value and a 
+    stop index value, the string name used for saving the new context2static embedding and the layer of model
+    choosen as vector.
+    
+    The method save automatically the extracted layer/vector, pooling it (with a mean) every token by dimension.
+    It writes the result on a txt file, ready for the processin on gensim library (static embeddings library)
+    
+    A straightforward saving strategy is used for avoiding sudden crashes of operations, with relative lost of 
+    data: this is requested by the long times of computation. This is a conservative approach, since it is 
+    slower but more efficient in terms of stored data.
+    ------------------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     vocabs = vocabs[start:stop]
     path_save = './Embeddings/words/'+ str(start)+'--'+str(stop)+name +'-l'+str(n_layer)+ '.txt'
@@ -123,15 +119,13 @@ def context2static(model, inputs, vocabs, start, stop, name = 'bio_bert', n_laye
 
         
 def append_context2static(path = './Embeddings/staticized_biobert/'):
-    #
-    #
-    #------------------------------------------------------------------------------------------------------------
-    # The method attaches the files created with multiprocessing logic via context2static method.
-    #
-    # It gets as input just the path of the folder with all the fragments in.
-    #------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ------------------------------------------------------------------------------------------------------------
+    The method attaches the files created with multiprocessing logic via context2static method.
+    
+    It gets as input just the path of the folder with all the fragments in.
+    ------------------------------------------------------------------------------------------------------------
+    '''
     b = datetime.datetime.now().replace(microsecond=0)    
     staticized = [f.name for f in os.scandir(path) if (f.is_file())&(f.name != 'README.md')]
     staticized.sort()
