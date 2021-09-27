@@ -49,17 +49,14 @@ OPPOSITE_RELAS = [('associated_finding_of', 'has_associated_finding'),
                   ('may_treat', 'may_be_treated_by')]
 
 def count_relationships(mrrel_path = MRREL, rel_type = 'RELA'):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------
-    # Accessory method for computing the number of particular relationships inside whole UMLS.
-    # The method get just the MRREL's path and the kind of relation considered (RELA or REL).
-    #
-    # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
-    #
-    #----------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------
+    Accessory method for computing the number of particular relationships inside whole UMLS.
+    The method get just the MRREL's path and the kind of relation considered (RELA or REL).
+    
+    MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
+    ----------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     set_tmp = set()
     # Open the RFF table
@@ -83,26 +80,24 @@ def count_relationships(mrrel_path = MRREL, rel_type = 'RELA'):
 
 
 def count_pairs(relations, cuis_list = None, mrrel_path = MRREL):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------
-    # The method takes a list of relations and the path of MRREL table by UMLS.
-    # The cuis_list input is not mandatory: it allows a further check for picking CUIs-pairs on the 
-    # presence inside a choosen seed.
-    # 
-    # Create a dictionary of relations -as keys-, and the pairs -as tuples- of CUIs linked by those
-    # relations. If cuis_list is not None, one of the two CUIs of the pair has to be present into the seed
-    #
-    # The method allows the building of the two sets for analogy computation: K_umls (with CUIs in pair
-    # related to a seed) and L_umls (all the pairs of CUIs in UMLS having a certain relation)
-    #
-    # The method gets as input the MRREL.RRF table's path as well.
-    # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
-    #
-    # Have to be noticed: the order of storing is CUI2 - REL - CUI1. This is a feature of MRREL description
-    #----------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------
+    The method takes a list of relations and the path of MRREL table by UMLS.
+    The cuis_list input is not mandatory: it allows a further check for picking CUIs-pairs on the 
+    presence inside a choosen seed.
+     
+    Create a dictionary of relations -as keys-, and the pairs -as tuples- of CUIs linked by those
+    relations. If cuis_list is not None, one of the two CUIs of the pair has to be present into the seed
+    
+    The method allows the building of the two sets for analogy computation: K_umls (with CUIs in pair
+    related to a seed) and L_umls (all the pairs of CUIs in UMLS having a certain relation)
+    
+    The method gets as input the MRREL.RRF table's path as well.
+    MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
+    
+    Have to be noticed: the order of storing is CUI2 - REL - CUI1. This is a feature of MRREL description
+    ----------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     tmpd = defaultdict(list)
     # Open the RFF table
@@ -140,31 +135,29 @@ def concepts_related_to_concept(mrrel_path = MRREL,
                                 switch_key= 'con',
                                 extract_labels = False,
                                 all_labels = True):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------
-    # The method substitues the related_cuis_concept, adding even the relationship to the dict. 
-    # 
-    # Create a dictionary of related CUIs to a concept (or relationships) -as keys-, given as input, and 
-    # the RELA as lists of strings (or concepts as a list of strings).
-    #
-    # The two modalities are choosen by the switch_key value: it may be 'con' for CUIs as keys and RELAs 
-    # as values or 'rel' for RELAs as keys and CUIs as values
-    #
-    # extract_labels represents a further switch which allows to augment the returned dictionary with
-    # labels -preferred and not-
-    #
-    # The method gets as input the MRREL.RRF table's path as well.
-    # MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
-    #
-    # It represents the first step in building the seed_rel: 
-    # (MRREL) --FIRST_HOP--> (ordered list of CUIs)
-    #
-    # The method extracts the second CUIs of the relation CUI1|REL|CUI2: the relation is doubled, so in 
-    # the table you can find the both ways of the relationship.
-    #----------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------
+    The method substitues the related_cuis_concept, adding even the relationship to the dict. 
+     
+    Create a dictionary of related CUIs to a concept (or relationships) -as keys-, given as input, and 
+    the RELA as lists of strings (or concepts as a list of strings).
+    
+    The two modalities are choosen by the switch_key value: it may be 'con' for CUIs as keys and RELAs 
+    as values or 'rel' for RELAs as keys and CUIs as values
+    
+    extract_labels represents a further switch which allows to augment the returned dictionary with
+    labels -preferred and not-
+    
+    The method gets as input the MRREL.RRF table's path as well.
+    MRREL.RRF row example: C0000005|A26634265|SCUI|RB|C0036775|A0115649|SCUI||R31979041||MSH|MSH|||N||
+    
+    It represents the first step in building the seed_rel: 
+    (MRREL) --FIRST_HOP--> (ordered list of CUIs)
+    
+    The method extracts the second CUIs of the relation CUI1|REL|CUI2: the relation is doubled, so in 
+    the table you can find the both ways of the relationship.
+    ----------------------------------------------------------------------------------------------------
+    '''
     # Timer for keeping track of the activity time
     a = datetime.datetime.now().replace(microsecond=0)
     tmpd = defaultdict(list)
@@ -238,24 +231,22 @@ def concepts_related_to_concept(mrrel_path = MRREL,
 
     
 def cui_strings(mrconso_path = MRCONSO, all_labels = True):
-    #
-    #
-    #-----------------------------------------------------------------------
-    # The method gets as input the MRCONSO.RRF table from UMLS.
-    # It returns a dictionary with CUIs as keys and a list of strings 
-    # (correspondent to unique SUIs) as values
-    #
-    # The strings with same SUI are discarded: for doing this a list of SUIs
-    # for each CUI is built. For each CUI a further check is performed on 
-    # the SUI: only an unique SUI (string) is considered.
-    #
-    # A second strategy consists in picking only the first label-string, 
-    # ranked by UMLS as the representative word label for that concept.
-    # The two strategies are choosen according the all_labels bool variable
-    # True for all labels, False for only the first label
-    #-----------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------
+    The method gets as input the MRCONSO.RRF table from UMLS.
+    It returns a dictionary with CUIs as keys and a list of strings 
+    (correspondent to unique SUIs) as values
+    
+    The strings with same SUI are discarded: for doing this a list of SUIs
+    for each CUI is built. For each CUI a further check is performed on 
+    the SUI: only an unique SUI (string) is considered.
+    
+    A second strategy consists in picking only the first label-string, 
+    ranked by UMLS as the representative word label for that concept.
+    The two strategies are choosen according the all_labels bool variable
+    True for all labels, False for only the first label
+    -----------------------------------------------------------------------
+    '''
     # Timer for keeping track of the activity time
     a = datetime.datetime.now().replace(microsecond=0)
     dict_strings = {}
@@ -301,18 +292,16 @@ def cui_strings(mrconso_path = MRCONSO, all_labels = True):
 
 
 def discarding_labels_oov(emb_vocab, seed, all_labels = True):
-    #
-    #
-    #-------------------------------------------------------------------------------------------------
-    # emb_vocab is a list containing the vocabulary of the analyzed embedding
-    # seed is the classic dictionary with CUIs as keys and labels (preferred or not) as values
-    # The method returns a polished seed, with only the labels contained inside the embedding vocabulary
-    #
-    # The boolean variable all_labels allows to pick all the word labels or only the ranked first
-    # IoV one.
-    #-------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -------------------------------------------------------------------------------------------------
+    emb_vocab is a list containing the vocabulary of the analyzed embedding
+    seed is the classic dictionary with CUIs as keys and labels (preferred or not) as values
+    The method returns a polished seed, with only the labels contained inside the embedding vocabulary
+    
+    The boolean variable all_labels allows to pick all the word labels or only the ranked first
+    IoV one.
+    -------------------------------------------------------------------------------------------------
+    '''
     t = datetime.datetime.now().replace(microsecond=0)
     vemb = set(emb_vocab)
     new_dict = {}
@@ -339,14 +328,12 @@ def discarding_labels_oov(emb_vocab, seed, all_labels = True):
 
 
 def extracting_strings(cuis_list , dict_strings = utils.inputs_load(DICT_CONSO)):
-    #
-    #
-    #-------------------------------------------------------------------------------------------------
-    # Taking a list of CUIs and the dictionary coming from MRCONSO.RRF table as inputs, it returns
-    # a dictionary with preferred and not preferred labels for each CUIs of the list.
-    #-------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -------------------------------------------------------------------------------------------------
+    Taking a list of CUIs and the dictionary coming from MRCONSO.RRF table as inputs, it returns
+    a dictionary with preferred and not preferred labels for each CUIs of the list.
+    -------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     #dict_tmp = {i:dict_strings[i] for i in cuis_list}
     dict_tmp = {}
@@ -363,19 +350,17 @@ def extracting_strings(cuis_list , dict_strings = utils.inputs_load(DICT_CONSO))
 
 
 def extracting_stys(cuis, mrsty_path= MRSTY):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------------
-    # The method, taken a list of CUIs, returns a dictionary with CUIs as keys and a list of semantic types 
-    # (strings) as values.
-    #
-    # It takes as input a list of CUIs and the path of the MRSTY.RRF table, the table where you can find the 
-    # CUI related to correspondents semantic types.
-    #
-    # ex. line: C0000132|T126|A1.4.1.1.3.3|Enzyme|AT17739337|256|
-    #----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------------
+    The method, taken a list of CUIs, returns a dictionary with CUIs as keys and a list of semantic types 
+    (strings) as values.
+    
+    It takes as input a list of CUIs and the path of the MRSTY.RRF table, the table where you can find the 
+    CUI related to correspondents semantic types.
+    
+    ex. line: C0000132|T126|A1.4.1.1.3.3|Enzyme|AT17739337|256|
+    ----------------------------------------------------------------------------------------------------------
+    '''
     # Timer for keeping track of the activity time
     a = datetime.datetime.now().replace(microsecond=0)
     tmp = defaultdict(list)
