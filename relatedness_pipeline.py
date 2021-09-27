@@ -11,6 +11,23 @@ SAVING_PATH = 'Utilities/Relatedness Data/
 NAME_SAVED_FILE = 'relatedness_data_'
 
 def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False):
+    '''
+    -------------------------------------------------------------------------------------------------------------
+    The method represents a further loop inside the relatedness loop, for the case k_most_similar = k_max 
+    experimentation. 
+    
+    Following a similar logic to the one implemented in regular_ks_loop, it is splitted into two section, one
+    for the cuis and another one for words. A system of debugging print is implemented via a logger. 
+    
+    The method gets as input a global variable, big_g, which is used for storing the values: at the ks choosen 
+    with the parsing with the ks list variable, the k = IoV is added. The method is recalled thanks to a switch in
+    parent methods.
+    
+    The method gets a list of seeds, the type of embedding, the embedding which has to be analyzed, the name of 
+    the analyzed embedding, the logger and a switch for choosing all the labels or only the first ranked by UMLS
+    inside the embedding's vocabulary at the same time.    
+    -------------------------------------------------------------------------------------------------------------
+    '''
     big_g[name]['max_k'] = {}    
     for seed in seeds:
         Vemb = utils.extract_w2v_vocab(model)
@@ -60,6 +77,19 @@ def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False)
 
 
 def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch, all_labels = False):
+    '''
+    -------------------------------------------------------------------------------------------------------------
+    The method implements the logic for relatedness and occurrence experimentation. It is splitted in two blocks:
+    one for cuis and another one for labels. Iteratively it loads an embedding model, among the ones inside the 
+    folder indicated in PATH_EMBEDDINGS, and applies the occurrence and dcg measures.
+    
+    The experimentation is performed for the choosen ks got via parsing, in the variable ks, for the seeds in 
+    seeds list. A logger is provided for debugging and the max_k_switch enable the max_ks_loop.
+    The all_labels switch allows to take all the labels for a concept or only the best ranked by UMLS.
+    
+    The method returns the global variable big_g
+    -------------------------------------------------------------------------------------------------------------    
+    '''
     big_g = {}
     a = datetime.datetime.now().replace(microsecond=0)
 
@@ -110,6 +140,14 @@ def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch, all_labels = Fa
     return big_g
 
 def relatedness_pipeline(logger, all_labels, ks, embedding_type, seed_type, max_k):
+    '''
+    -------------------------------------------------------------------------------------------------------------
+    It is an accessory method which allows the preparation of utility variables. The picked choices performed
+    with cli, stored on arg parse are processed inside this method.
+    
+    The method gets as inputs all the arg parse variables and returns the file of stored big_g variable.
+    -------------------------------------------------------------------------------------------------------------    
+    '''
     # Constants
     embeddings = []
     seeds = []
