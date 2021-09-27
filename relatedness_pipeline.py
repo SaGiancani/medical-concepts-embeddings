@@ -10,6 +10,32 @@ PATH_EMBEDDINGS = './Embeddings'
 SAVING_PATH = 'Utilities/Relatedness Data/
 NAME_SAVED_FILE = 'relatedness_data_'
 
+
+def cardinality_embeddings():
+    '''
+    -------------------------------------------------------------------------------------------------------------
+    The method gets no input and returns a dictionary with information about the cardinality of embeddings.
+    
+    The outcome corresponds to the variable cardinality_vembs stored in Utilities.
+    -------------------------------------------------------------------------------------------------------------    
+    '''
+    a = datetime.datetime.now().replace(microsecond=0)
+    cuis = ('/cuis/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/cuis') if (f.is_file())&(f.name != 'README.md')])
+    words = ('/words/', [f.name for f in os.scandir(PATH_EMBEDDINGS+'/words') if (f.is_file())&(f.name != 'README.md')])
+    embeddings = [cuis, words]
+    cardinality_vemb = {}
+    for type_emb in embeddings:
+        for emb in type_emb[1]:
+            model = KeyedVectors.load_word2vec_format(PATH_EMBEDDINGS+type_emb[0]+emb, binary=emb.endswith('.bin'))
+            name = os.path.splitext(emb)[0]
+            vemb = utils.extract_w2v_vocab(model)
+            cardinality_vemb[name] = len(vemb)
+
+    #utils.inputs_save(cardinality_vemb, 'Utilities/cardinality_vembs')
+    print(datetime.datetime.now().replace(microsecond=0)-a)
+    return cardinality_vemb
+
+
 def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False):
     '''
     -------------------------------------------------------------------------------------------------------------
