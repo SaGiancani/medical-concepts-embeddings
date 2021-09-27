@@ -7,18 +7,104 @@ import matplotlib.cm as cm
 from matplotlib.patches import Rectangle
 
 import numpy as np
+import os
 import pandas as pd
 
 import plotly
 import plotly.graph_objects as go
 import seaborn as sns
 
+import analogy_pipeline, utils
+
+def coloring(n):
+    '''
+    -------------------------------------------------------------------------------------------------------
+    The method provides a way to obtain potentially infinite colors for plotting, 
+    given just the number of wanted colors
+    -------------------------------------------------------------------------------------------------------
+    '''
+    color = iter(cm.rainbow(np.linspace(0, 1, n)))
+    t = []
+    for i in range(n):
+        t.append(next(color))
+    return t
+
+
+def plot_analogy(dict_ = None,
+                 operations = ['add', 'pair'], 
+                 cardinality_relations = utils.inputs_load('Utilities/Analogical Data/k_cardinality_per_rel'), 
+                 path = 'Utilities/Analogical Data/'):
+    '''
+    -------------------------------------------------------------------------------------------------------
+    The method provides a figure with the plots of the count normalized and factorized coming from the 
+    analogy 3cosadd. By default it plots even the mean pairs-direction values. 
+    3cosmul is supported.
+    
+    It gets as inputs a list of labels, indicating the titles of the plots, but also the considered operations, 
+    a cardinality_relations variable, which is the variable obtained with cardinality_kl method from 
+    analogy_pipeline file.
+    
+    It loads all the variable stored in path string variable: it gets all the variables obtained running 
+    analogy_pipeline.
+    -------------------------------------------------------------------------------------------------------
+    '''
+    file_to_plot = [os.path.splitext((f.name).replace("_LsameasK_umls", ""))[0] 
+                    for f in os.scandir(path) 
+                    if (f.is_file())&((f.name).endswith('_LsameasK_umls.pickle'))]
+    colors = coloring(len(file_to_plot))
+    fig, ax = plt.subplots(len(operations),figsize=(30, 10*len(operations)))
+    fig.subplots_adjust(hspace=0)
+    if dict_ is None:
+        dict_ = analogy_pipeline.processing_analog_pipe_outcome(operations = operations, 
+                                                                path_completing = "_LsameasK_umls",
+                                                                cardinality_relations = utils.inputs_load(path+ 'k_cardinality_per_rel'), 
+                                                                path = path, 
+                                                                all_ = False)
+        print(dict_.keys())
+    for i, emb in enumerate(file_to_plot):
+        print(emb)
+        for j, operation in enumerate(operations):
+            
+            if (operation == 'add'):
+                y_values = [dict_[emb][operation][rela]['ratio'] for rela in list(dict_[emb][operation].keys()) ]
+                #y_values = list(dict_[emb][operation]['ratio'])
+            if (operation == 'mul') or (operation == 'pair'):
+                y_values = [dict_[emb][operation][rela]['mean'] for rela in list(dict_[emb][operation].keys()) ]
+                #y_values = list(dict_[emb][operation]['mean'])
+                
+            if len(operations) >1:
+                #print(list(dict_[emb][operation].keys()))
+                ax[j].plot(np.arange(0, len(list(dict_[emb][operation].keys()))),
+                           np.array(y_values),
+                           '-gD',color = colors[i], label = emb)   
+            else:
+                ax.plot(np.arange(0, len(list(dict_[emb][operation].keys()))),
+                        np.array(y_values),
+                        '-gD',color = colors[i], label = emb)   
+    
+    if len(operations)>1:        
+        for j, operation in enumerate(operations):
+            if j == 0:
+                ax[j].legend(fontsize=15)
+            ax[j].text(.5,.9, operation, horizontalalignment='center', transform=ax[j].transAxes, fontsize = 25)
+            ax[j].set_xticks(np.arange(0, len(list(dict_[file_to_plot[1]][operation].keys()))))
+            ax[j].set_xticklabels(np.array(list(dict_[file_to_plot[1]][operation].keys())), rotation=60, fontsize=10)
+    else:
+        ax.legend(fontsize=15)
+        ax.text(.5,.9, operations[0], horizontalalignment='center', transform=ax.transAxes, fontsize = 25)
+        ax.set_xticks(np.arange(0, len(list(dict_[file_to_plot[1]][operations[0]].keys()))))
+        ax.set_xticklabels(np.array(list(dict_[file_to_plot[1]][operations[0]].keys())), rotation=60, fontsize=10)
+    plt.show()
 
 def plot_clustered_stacked(dfall, labels=None, title="multiple stacked bar plot", H="/", **kwargs):
-    """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
+    """
+    -------------------------------------------------------------------------------------------------------
+    Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
     labels is a list of the names of the dataframe, used for the legend
     title is a string for the title of the plot
-    H is the hatch used for identification of the different dataframe"""
+    H is the hatch used for identification of the different dataframe
+    -------------------------------------------------------------------------------------------------------
+    """
     plt.rcParams["figure.figsize"] = (30,10)
     #matplotlib.style.use('fivethirtyeight') 
     n_df = len(dfall)
@@ -183,3 +269,35 @@ def tabular_result(k_results, k = None):
     )
 
     
+def table_analog_results(tmp, operation, title):
+    '''
+    -------------------------------------------------------------------------------------------------------
+    The method use pandas DataFrame for tabling data obtained with analogy_pipeline. 
+    
+    It builds a dataframe per embedding, having as index the relations and as header
+    the parameters for the choosen operation.
+    
+    A further parameter has to provided, which is the title of the table.
+    
+    The method returns a list of DataFrame, useful for tabling and visualizing data on a jupyter notebook
+    -------------------------------------------------------------------------------------------------------
+    '''
+    df__ = list()
+    names = list(tmp.keys())
+    relas = list(tmp[names[0]][operation].keys())
+    head = list(tmp[names[0]][operation][relas[0]].keys())
+
+    for name in names:
+        header = [np.array([title+ ' | ' + name]*len(head)),
+                  np.array(head)]
+        temp = list()
+        for rela in relas:
+            rela_t = list()
+            for i in list(tmp[name][operation][rela].values()): 
+                if type(i) == int:
+                    rela_t.append('%.i'%i)
+                elif type(i) == float:
+                    rela_t.append('%.3f'%i)
+            temp.append(rela_t)
+        df__.append(pd.DataFrame(np.reshape(temp, (len(relas), len(head))), index=relas, columns = header))
+    return df__
