@@ -20,6 +20,23 @@ def analog_loop(path,
                 metrics,
                 dict_labels_for_L = None,
                 all_labels = False):
+    '''
+    -------------------------------------------------------------------------------------------------------------------
+    The method implements the logic: it recalls the choosen metrics for analogy computation.
+    The method presents two different logics, one for cuis and another for words: for the second one
+    
+    The method gets as inputs the loading model path, provided by analog_pipe, with a boolean representing the extension
+    of the embedding file model (if binary or not). A string representing the name of the embedding, the type of 
+    embedding, /cuis/ or /words/, the two sets coming from analog_pipe. For further description about the sets, K_type, 
+    logger, metrics see there.
+    
+    analog_comp_dict variable is the global dictionary, one for embedding: it is the outcome of the method. It has to 
+    stored once per relationship, for avoiding sudden break of computation and losing information.
+    
+    dict_labels_for_l and all_labels are herited by parent methods, and they're varaibles useful for label processing 
+    logic.
+    -------------------------------------------------------------------------------------------------------------------
+    '''
     
     # Load the w2v model
     model = KeyedVectors.load_word2vec_format(path, binary=binary_bool)
@@ -42,31 +59,16 @@ def analog_loop(path,
                                         model, 
                                         logger = logger,
                                         emb_type = 'cui')
-            
-            # sets_relations keeps track of the number of pairs of K and L sets. 
-            # The number of filtered pairs on Vemb, per relation are stored
-#            sets_relations[rela].append((name+'_l'+K_type, np.shape(l0)))
-#            sets_relations[rela].append((name+'_k'+K_type, np.shape(k0)))
-            
-            # Save the pickle variable
-#            utils.inputs_save(sets_relations, 'Utilities/sets_relations' + name + K_type)
-                                
+                                            
             # Compute the analogy and store the results
             tmp = measures.analogy_compute(l0, k0, 
                                            model,
                                            metrics,
                                            logger = logger,
                                            emb_type = 'cui')
-            dict_t[name][rela] = tmp
-            
-            # Compute the sum of analogy hits and store it.
-            #if len(tmp)>0:
-            #    analog_comp_dict[name][rela] = (sum(list(zip(*tmp))[2]), len(tmp))
-            #else:
-            #    analog_comp_dict[name][rela] = (0, len(tmp))                        
+            dict_t[name][rela] = tmp                    
 
             utils.inputs_save(dict_t, SAVING_PATH + name + K_type+str(datetime.datetime.now()))                    
-            #utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
             
             # Log of end of 'relation' operation
             logger.info('The time for RELA %s, for embedding %s is %s', 
@@ -90,12 +92,6 @@ def analog_loop(path,
                                         logger = logger,
                                         dict_labels_for_L = dict_labels_inters_vemb,
                                         emb_type = 'labels')
-
-            # Store number of filtered pairs
-#            sets_relations[rela].append((name+'_l'+K_type, np.shape(l0)))
-#            sets_relations[rela].append((name+'_k'+K_type, np.shape(k0)))
-
-#            utils.inputs_save(sets_relations, 'Utilities/sets_relations' + name + K_type)
                     
             tmp = measures.analogy_compute(l0, k0, 
                                            model, 
@@ -105,14 +101,8 @@ def analog_loop(path,
                                            emb_type = 'labels')                    
                     
             dict_t[name][rela] = tmp
-                    
-            #if len(tmp)>0:
-            #    analog_comp_dict[name][rela] = (sum(list(zip(*tmp))[2]), len(tmp))
-            #else:
-            #    analog_comp_dict[name][rela] = (0, len(tmp))
                         
             utils.inputs_save(dict_t, SAVING_PATH + name + K_type+str(datetime.datetime.now()))                    
-            #utils.inputs_save(analog_comp_dict, 'Utilities/count_analog_' + name + K_type)
                     
             logger.info('The time for RELA %s, for embedding %s is %s', 
                         rela,
@@ -128,15 +118,27 @@ def analog_pipe(L, K,
                 parallel = False,
                 embedding_type = 'both', 
                 all_labels = False):
+    '''
+    -------------------------------------------------------------------------------------------------------------------
+    
+    The method loads the models and handles a multiprocessing computation. 
+    
+    For avoiding simultaneously loading too much models, in the case  of more than 4 embeddings, the script makes load 
+    only 2 embeddings per time, corresponding to 2 processes, one per embedding. It is the case of the w2v. 
+    For the cui2v, they are loaded all simultaneously (they're 4 models).
+    
+    It get as input two sets of couple, L and K, representing respectively, the set of UMLS couples linked by a set 
+    of choosen relationships and the set of UMLS couples linked by a set of choosen relationships where one of the two
+    concepts belong to a choosen seed.
+    The method gets even a logger, for debugging, a string representin the type of K, for storing univoquely the 
+    variable.
+    A list of choosen metrics is provided. The switch for multiprocessing logic, the kind of embeddings analyzed, cuis 
+    or words. And eventually, a switch for the analysis of all labels or only the UMLS best ranked and IoV at the same 
+    time.   
+    -------------------------------------------------------------------------------------------------------------------
+    '''
     
     a = datetime.datetime.now().replace(microsecond=0)
-    
-    # Storing expression of relations in sets K and L
-#    sets_relations = defaultdict(list)
-#    for k in umls_tables_processing.USEFUL_RELA:
-#        sets_relations[k].append(('L_umls', np.shape(L[k])))
-#        sets_relations[k].append(('K'+K_type, np.shape(K[k])))
-#    print('Numbers of pairs for relationships stored')
     
     # Loading w2v files
     embeddings = []
@@ -230,20 +232,18 @@ def analog_pipe(L, K,
 
     
 def cardinality_kl(embeddings, useful_rela, L_umls, K_umls, dict_labels_for_L = None):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------------------
-    # The method returns a pickle dictionary variable reusable by other methods for plotting.
-    #
-    # It gets as input a list of strings, with the names of analyzed embeddings, a list of analyzed relationships
-    # and two pairs sets, K and L. The variable dict_labels_for_L is not compulsary: it is used only by the filtering
-    # k_n_l_iov method for w2v embeddings.
-    #
-    # The method return informations about the cardinality of original UMLS sets and the filtered IoV one, given an 
-    # embedding.
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------------------
+    The method returns a pickle dictionary variable reusable by other methods for plotting.
+    
+    It gets as input a list of strings, with the names of analyzed embeddings, a list of analyzed relationships
+    and two pairs sets, K and L. The variable dict_labels_for_L is not compulsary: it is used only by the filtering
+    k_n_l_iov method for w2v embeddings.
+    
+    The method return informations about the cardinality of original UMLS sets and the filtered IoV one, given an 
+    embedding.
+    ----------------------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     sets_relations_k = {}
     sets_relations_l = {}
@@ -290,30 +290,76 @@ def cardinality_kl(embeddings, useful_rela, L_umls, K_umls, dict_labels_for_L = 
     print('Execution time : ' + str(datetime.datetime.now().replace(microsecond=0) - a) + '\n')
     
 
-def processing_analog_pipe_outcome(name_emb, 
-                                   dict_information,
-                                   cardinality_relations = utils.inputs_load(SAVING_PATH+'k_cardinality_per_rel')):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method gets the variable obtained with analogy_pipeline script and performs the cos3add custom formula
-    # we designed: (n°of occurred expected concepts[rela]/#Kiov[rela])*(#Kiov[rela]/#(K_umls/Kiov[rela]))
-    # The information for cardinality of several sets are taken by cardinality_relations variable, previously 
-    # computed. It is a dictionary where keys are relas and values lists of tuples, where each tuple represents 
-    # an embedding.
-    #
-    # N.B. #kiov does not count the same-couple analysis. The corrective factor is +1 
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
-    dict_out = {}
-    for rela in list(dict_information[name_emb].keys()):
-        count = sum(dict_information[name_emb][rela]['add'])
-        occurrences = len(dict_information[list(dict_information.keys())[0]][rela]['add'])
-        kiov_cardin = cardinality_relations[rela][name_emb]
-        k_umls_cardin = cardinality_relations[rela]['K wor']
-        dict_out[rela] = measures.analog_comput_formula(kiov_cardin, k_umls_cardin, count, occurrences, rela)
-    return dict_out
+def processing_analog_pipe_outcome(operations = ['add'],
+                                   path_completing = "_LsameasK_umls",
+                                   cardinality_relations = utils.inputs_load(SAVING_PATH+'k_cardinality_per_rel'),
+                                   path = SAVING_PATH,
+                                   all_ = False):
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method gets the variable obtained with analogy_pipeline script and performs the cos3add custom formula
+    we designed: 
+    (n°of occurred expected concepts[rela]/#Kiov[rela])*(#Kiov[rela]/(#K_umls[rela] * (#K_umls[rela]-1)))
+    
+    The information for cardinality of several sets are taken by cardinality_relations variable, previously 
+    computed. It is a dictionary where keys are relas and values lists of tuples, where each tuple represents 
+    an embedding.
+    
+    N.B. #kiov does not count the same-couple analysis. The corrective factor is +1 
+    -----------------------------------------------------------------------------------------------------------
+    '''
+    file_to_plot = [os.path.splitext((f.name).replace(path_completing, ""))[0] 
+                    for f in os.scandir(path) if (f.is_file())&((f.name).endswith(path_completing+'.pickle'))]
+    dict_ = {}
+    for i, name_emb in enumerate(file_to_plot):
+        dict_[name_emb] = {}
+        dict_information = utils.inputs_load(path + name_emb + path_completing)
+        dict_out = {operation: {} for operation in operations}
+        for rela in list(dict_information[name_emb].keys()):
+            for operation in operations:    
+                dict_out[operation][rela] = {}
+                if operation == 'add':
+                    count = sum(dict_information[name_emb][rela]['add'])
+                    occurrences = len(dict_information[list(dict_information.keys())[0]][rela]['add'])
+                    kiov_cardin = cardinality_relations[rela][name_emb]
+                    k_umls_cardin = cardinality_relations[rela]['K wor']
+                    if all_:
+                        dict_out[operation][rela] = {'ratio': measures.analog_comput_formula(kiov_cardin, 
+                                                                                  k_umls_cardin,
+                                                                                  count,
+                                                                                  occurrences,
+                                                                                  rela),
+                                                     'count': count, 
+                                                     '|K|(|K|-1)': occurrences,
+                                                     '|K|': kiov_cardin,
+                                                     '|W|': k_umls_cardin}
+                    else:
+                        dict_out[operation][rela] ={'ratio': measures.analog_comput_formula(kiov_cardin, 
+                                                                                   k_umls_cardin,
+                                                                                   count,
+                                                                                   occurrences,
+                                                                                   rela)}
+                else:
+                    if all_:
+                        if len(list(dict_information[name_emb][rela][operation]))>0:
+                            tmp = utils.aggregation_values(dict_information[name_emb][rela][operation])
+                            dict_out[operation][rela] = {'max': tmp[0], 'min':tmp[1], 'mean': tmp[2],
+                                                         'std_dev': tmp[3], 'mode': tmp[4], 'low quart': tmp[5],
+                                                         'median': tmp[6], 'up quart': tmp[7], '#distribution':tmp[8]}
+                        else:
+                            dict_out[operation][rela] = {'max': 0, 'min':0, 'mean': 0,
+                                                         'std_dev': 0, 'mode': 0, 'low quart': 0,
+                                                         'median': 0, 'up quart': 0, '#distribution':0}
+                    else:
+                        if len(list(dict_information[name_emb][rela][operation]))>0:
+                            tmp = utils.aggregation_values(dict_information[name_emb][rela][operation])
+                            dict_out[operation][rela] = {'mean': tmp[2]}
+                        else:
+                            dict_out[operation][rela] = {'mean': 0}                    
+
+        dict_[name_emb] = dict_out
+    return dict_
+
 
     
 if __name__ == '__main__':
@@ -419,16 +465,9 @@ if __name__ == '__main__':
     # Building the dictionary for labels case
     # Collecting all the CUIs involved in set L
     if (args.embedding_type == 'words') | (args.embedding_type == 'both'):
-        # This was an overkill: for discarding 15mb of concept couples two very similar dictionaries were uploaded
-        #jh = []
-        #for v in L_umls.values():
-        #    jh.append(list(set(list(zip(*v))[0])))
-        #    jh.append(list(set(list(zip(*v))[1])))
-        #    tmp = set([j for i in jh for j in i ])
         # Construction of UMLS dictionary: for each CUI are picked the correspondent labels.
         # all_labels handle the choice among all the possible labels and only the preferred one.
         dict_labels_for_L = umls_tables_processing.cui_strings()
-        #dict_labels_for_L, _ = umls_tables_processing.extracting_strings(list(tmp), dict_strings = dict_strings)
     
     else:
         dict_labels_for_L = None
