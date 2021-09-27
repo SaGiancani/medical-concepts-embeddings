@@ -146,20 +146,16 @@ DICT_STY = {'acab': 'Acquired Abnormality',
 
 
 def check_sty_mmi(proto_seed, dict_sty=DICT_STY):
-    #
-    #
-    #-------------------------------------------------------------------------------------------------------------
-    # The method takes as input the list of tuples coming from mmi_to_cui method: it has as first element a CUI
-    # and the correspondent list of semantic types, even if the CUI has only one semantic type.
-    #
-    # It performs a count of the semantic types of the concepts contained into the proto_seed (proto because there
-    # are no strings associated to the CUIs) and returns a dictionary with the semantic type MetaMap codes as keys
-    # and a tuple of the number of semantic types occurrences and the extended string of the type code.
-    #
-    # 
-    #-------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -------------------------------------------------------------------------------------------------------------
+    The method takes as input the list of tuples coming from mmi_to_cui method: it has as first element a CUI
+    and the correspondent list of semantic types, even if the CUI has only one semantic type.
+    
+    It performs a count of the semantic types of the concepts contained into the proto_seed (proto because there
+    are no strings associated to the CUIs) and returns a dictionary with the semantic type MetaMap codes as keys
+    and a tuple of the number of semantic types occurrences and the extended string of the type code.
+    -------------------------------------------------------------------------------------------------------------
+    '''
     tmp = []
     tmp_d = {}
     for i in proto_seed:
@@ -176,14 +172,12 @@ def check_sty_mmi(proto_seed, dict_sty=DICT_STY):
 
 
 def convert_sty_stymmi(dict_cui_sty, dict_sty=DICT_STY):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------------
-    # Convert the string extended semantic type to the abbreviation using the DICT_STY constant coming from MMI
-    # manual.
-    #---------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------------
+    Convert the string extended semantic type to the abbreviation using the DICT_STY constant coming from MMI
+    manual.
+    ---------------------------------------------------------------------------------------------------------------
+    '''
     tmp = dict_cui_sty.items()
     for i,j in dict_sty.items():
         for z, k in tmp:
@@ -195,24 +189,22 @@ def convert_sty_stymmi(dict_cui_sty, dict_sty=DICT_STY):
 
 
 def mmi_to_cui(stop_value = 400, mmi_file = 'Utilities/paper_seed.txt.out', sty = False):
-    #
-    #
-    #-------------------------------------------------------------------------------------------------
-    # The method extracts CUIs from MMI list file coming from MetaMap, after metamapping text.
-    #
-    # It takes as input a stop_value which represents the seed's length, the path where the 
-    # mapped text is located and a boolean value for considering the semantic type as well: it's false
-    # by default.
-    # The method returns a list of first stop_value CUIs, considering only the MMI lines, if the sty 
-    # is false: for briefness,the mapped concept with a CUI. If the sty is true, a list of tuples is 
-    # returned, with a CUI as first element and the correspondent semantic_type as second element.
-    #
-    # It represents the first step in building the seed_paper: (free text) --MMI--> (ordered list of CUIs)
-    #
-    # For best comprehension of metamapping, looking for MMI format on MetaMap guide.
-    #-------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -------------------------------------------------------------------------------------------------
+    The method extracts CUIs from MMI list file coming from MetaMap, after metamapping text.
+    
+    It takes as input a stop_value which represents the seed's length, the path where the 
+    mapped text is located and a boolean value for considering the semantic type as well: it's false
+    by default.
+    The method returns a list of first stop_value CUIs, considering only the MMI lines, if the sty 
+    is false: for briefness,the mapped concept with a CUI. If the sty is true, a list of tuples is 
+    returned, with a CUI as first element and the correspondent semantic_type as second element.
+    
+    It represents the first step in building the seed_paper: (free text) --MMI--> (ordered list of CUIs)
+    
+    For best comprehension of metamapping, looking for MMI format on MetaMap guide.
+    -------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     list_cuis = []
     count = 0
@@ -254,42 +246,40 @@ def mmi_to_cui(stop_value = 400, mmi_file = 'Utilities/paper_seed.txt.out', sty 
 
             
 def mmi_lite_freetext(free_text_file = 'Utilities/paper_seed.txt', sty = False):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------
-    # The method maps text thanks to MetaMapLite and its ReST service. 
-    #
-    # Send request to ReST service and return response when received.
-    # Example of received data:
-    #
-    #  url = 'https://ii-public1.nlm.nih.gov/metamaplite/rest/annotate'
-    #  acceptfmt = 'text/plain'
-    #  params = [('inputtext', 'Apnea\n'), ('docformat', 'freetext'),
-    #               ('resultformat', 'json'), ('sourceString', 'all'),
-    #               ('semanticTypeString', 'all')]
-    #  resp = handle_request(url, acceptfmt, params)
-    #  resp.text
-    #  '[{"matchedtext":"Apnea",
-    #   "evlist":[{"score":0,"matchedtext":"Apnea","start":0,"length":5,"id":"ev0",
-    #               "conceptinfo":{"conceptstring":"Apnea",
-    #                              "sources":["MTH","NCI_CTCAE_5","NCI","NCI_CTCAE_3"],
-    #                              "cui":"C1963065","preferredname":"Apnea, CTCAE",
-    #                              "semantictypes":["fndg"]}},
-    #             {"score":0,"matchedtext":"Apnea","start":0,"length":5,"id":"ev0",
-    #              "conceptinfo":{"conceptstring":"Apnea",
-    #                             "sources":["LNC","MTH","HPO","NANDA-I","ICPC2P","CHV",
-    #                                        "SNMI","SNM","NCI_FDA","LCH_NW","AOD","ICD9CM",
-    #                                        "MDR","SNOMEDCT_US","CCPSS","WHO","NCI_NICHD",
-    #                                        "CSP","RCDSA","MSH","ICD10CM","CST","OMIM",
-    #                                        "NCI_CTCAE","ICPC2ICD10ENG","COSTAR","MEDCIN",
-    #                                        "LCH","RCD","RCDAE","NCI","PSY","NDFRT","RCDSY",
-    #                                        "DXP","ICNP"],
-    #                             "cui":"C0003578","preferredname":"Apnea",
-    #                             "semantictypes":["sosy"]}}],
-    #    "docid":"00000000.tx","start":0,"length":5,"id":"en0","fieldid":"text"}]'
-    #---------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------
+    The method maps text thanks to MetaMapLite and its ReST service. 
+    
+    Send request to ReST service and return response when received.
+    Example of received data:
+    
+    url = 'https://ii-public1.nlm.nih.gov/metamaplite/rest/annotate'
+    acceptfmt = 'text/plain'
+    params = [('inputtext', 'Apnea\n'), ('docformat', 'freetext'),
+              ('resultformat', 'json'), ('sourceString', 'all'),
+              ('semanticTypeString', 'all')]
+    resp = handle_request(url, acceptfmt, params)
+    resp.text
+    '[{"matchedtext":"Apnea",
+                     "evlist":[{"score":0,"matchedtext":"Apnea","start":0,"length":5,"id":"ev0",
+                               "conceptinfo":{"conceptstring":"Apnea",
+                               "sources":["MTH","NCI_CTCAE_5","NCI","NCI_CTCAE_3"],
+                               "cui":"C1963065","preferredname":"Apnea, CTCAE",
+                               "semantictypes":["fndg"]}},
+                              {"score":0,"matchedtext":"Apnea","start":0,"length":5,"id":"ev0",
+                               "conceptinfo":{"conceptstring":"Apnea",
+                                              "sources":["LNC","MTH","HPO","NANDA-I","ICPC2P","CHV",
+                                                         "SNMI","SNM","NCI_FDA","LCH_NW","AOD","ICD9CM",
+                                                         "MDR","SNOMEDCT_US","CCPSS","WHO","NCI_NICHD",
+                                                         "CSP","RCDSA","MSH","ICD10CM","CST","OMIM",
+                                                         "NCI_CTCAE","ICPC2ICD10ENG","COSTAR","MEDCIN",
+                                                         "LCH","RCD","RCDAE","NCI","PSY","NDFRT","RCDSY",
+                                                         "DXP","ICNP"],
+                                              "cui":"C0003578","preferredname":"Apnea",
+                                              "semantictypes":["sosy"]}}],
+                     "docid":"00000000.tx","start":0,"length":5,"id":"en0","fieldid":"text"}]'
+    ---------------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     url = 'https://ii-public1.nlm.nih.gov/metamaplite/rest/annotate'
     acceptfmt = 'text/plain'

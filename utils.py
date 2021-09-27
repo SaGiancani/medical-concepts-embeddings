@@ -6,39 +6,37 @@ import pickle
 
     
 def aggregation_values(values_to_aggregate):
-    #
-    #
-    #------------------------------------------------------------------------------------------------------------------
-    # The method allows to have a statistical frame of labels processing for analogy computation, and basically it is
-    # a wrapper of several statistical values.
-    #
-    # max, min, mean, mode, upper, median and bottom quartiles 
-    # They are useful for describing the cos3mul and pair_direction for labels
-    #------------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ------------------------------------------------------------------------------------------------------------------
+    The method allows to have a statistical frame of labels processing for analogy computation, and basically it is
+    a wrapper of several statistical values.
+    
+    max, min, mean, mode, upper, median and bottom quartiles 
+    They are useful for describing the cos3mul and pair_direction for labels
+    ------------------------------------------------------------------------------------------------------------------
+    '''
     maximum = np.max(values_to_aggregate)
     minumum = np.min(values_to_aggregate)
     mean = np.mean(values_to_aggregate)
     std_dev = np.std(values_to_aggregate)
     mode = stats.mode(values_to_aggregate[:])[0][0]
+    #if len(mode) > 0:
+    #    mode = mode[0]
     lower_quart = np.quantile(values_to_aggregate, .25)
     median = np.median(values_to_aggregate)
     upper_quart = np.quantile(values_to_aggregate, .75)
     return [maximum, minumum, mean, std_dev, mode, lower_quart, median, upper_quart, len(values_to_aggregate)]
     
 def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='./Embeddings/cui2vec_pretrained.txt'):
-    #
-    #
-    #------------------------------------------------------------------------------------------------------------------
-    # The method is thought to solve the problem raised by the .csv format used by http://cui2vec.dbmi.hms.harvard.edu/
-    # with their cui2vec embedding. Gensim doesnt support csv format.
-    # 
-    # The method converts .csv embedding to a .txt one.
-    # It takes as input the path of the .csv input embedding and the path of the output .txt embedding.
-    #------------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ------------------------------------------------------------------------------------------------------------------
+    The method is thought to solve the problem raised by the .csv format used by http://cui2vec.dbmi.hms.harvard.edu/
+    with their cui2vec embedding. Gensim doesnt support csv format.
+     
+    The method converts .csv embedding to a .txt one.
+    It takes as input the path of the .csv input embedding and the path of the output .txt embedding.
+    ------------------------------------------------------------------------------------------------------------------
+    '''
     csv_beam = pd.read_csv(path_load)
 
     with open(path_save, 'w') as file:
@@ -54,24 +52,20 @@ def csv_emb_to_txt(path_load='./Embeddings/cui2vec_pretrained.csv', path_save='.
             
             
 def extract_w2v_vocab(model):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------
-    #The method returns a list of the vocabulary of the w2v model, taking the last as input
-    #---------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------
+    The method returns a list of the vocabulary of the w2v model, taking the last as input
+    ---------------------------------------------------------------------------------------------------------
+    '''
     return list(model.vocab.keys())
 
 
 def inputs_load(filename):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------
-    # The method allows to load pickle extension files, preserving python data_structure formats
-    #---------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------
+    The method allows to load pickle extension files, preserving python data_structure formats
+    ---------------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     with open(filename + '.pickle', 'rb') as f:
         t = pickle.load(f)
@@ -79,25 +73,21 @@ def inputs_load(filename):
         return t    
     
 def inputs_save(inputs, filename):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------
-    # The method allows to save python data_structure preserving formats
-    #---------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------
+    The method allows to save python data_structure preserving formats
+    ---------------------------------------------------------------------------------------------------------
+    '''
     with open(filename+'.pickle', 'wb') as f:
         pickle.dump(inputs, f, pickle.HIGHEST_PROTOCOL)
         
 
 def mapcount(filename):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------
-    # Count the file lines .
-    #---------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------
+    Count the file lines .
+    ---------------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     f = open(filename, "r+")
     buf = mmap.mmap(f.fileno(), 0)
@@ -110,18 +100,16 @@ def mapcount(filename):
 
         
 def polish_relations(tmpd, ty = 'con'):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------
-    # Accessory method of the concepts_related_to_concept method. It takes a dictionary with CUIs as keys and
-    # lists of relationships RELA as values.
-    #
-    # ty is the variable which represents the type of keys: 'con' if CUIs, 'rel' if RELAs 
-    #
-    # It discards the duplicates and the empty RELAs indicated as '': returns a polished dictionary.
-    #---------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------
+    Accessory method of the concepts_related_to_concept method. It takes a dictionary with CUIs as keys and
+    lists of relationships RELA as values.
+    
+    ty is the variable which represents the type of keys: 'con' if CUIs, 'rel' if RELAs 
+    
+    It discards the duplicates and the empty RELAs indicated as '': returns a polished dictionary.
+    ---------------------------------------------------------------------------------------------------------
+    '''
     if ty == 'con':
         dict_tmp = {}
         for k, v in tmpd.items():
@@ -140,15 +128,13 @@ def polish_relations(tmpd, ty = 'con'):
         
         
 def save_txt_dicts(my_dict, name_file):
-    #
-    #
-    #---------------------------------------------------------------------------------------------------------
-    # Creates a txt file filled with dictionaries. For readability, the key is highlighted by some '+' chars
-    #
-    # It takes as input 3 nested dictionaries to save in the txt file, and a string for naming the file.
-    #---------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ---------------------------------------------------------------------------------------------------------
+    Creates a txt file filled with dictionaries. For readability, the key is highlighted by some '+' chars
+    
+    It takes as input 3 nested dictionaries to save in the txt file, and a string for naming the file.
+    ---------------------------------------------------------------------------------------------------------
+    '''
     with open(name_file, 'w') as fp:
         fp.write('\n'.join(' +++++%s+++++\n%s\n%s\n%s' % (x, y, k, z) for x, y, k, z in zip(my_dict.keys(),
                                                                                             my_dict.values().keys(),
@@ -157,15 +143,13 @@ def save_txt_dicts(my_dict, name_file):
 
         
 def setup_custom_logger(name):
-    #
-    #
-    #-------------------------------------------------------------------------------------------------------------
-    # Logger for printing and debugging
-    #
-    # It is used for log files for background processes.
-    #-------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -------------------------------------------------------------------------------------------------------------
+    Logger for printing and debugging
+    
+    It is used for log files for background processes.
+    -------------------------------------------------------------------------------------------------------------
+    '''
     PATH_LOGS = './logs/log_'
     formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
                                   datefmt='%Y-%m-%d %H:%M:%S')

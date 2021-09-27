@@ -7,24 +7,22 @@ from sklearn.decomposition import PCA
 
 
 def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method implements the analogic reasoning. 
-    # It has two modes, handled by the emb_type switch: a cui mode, where the processed concepts are CUIs, and a
-    # labels mode, where the processed concepts are preferred and not preferred labels.
-    #
-    # The L and K are list of pairs for a specific relation. The model is the gensim model of the considered
-    # embedding. 
-    # The logger is not compulsary and it is used for debugging and keeping track of running scripts. It is 
-    # tought for background running scripts.
-    # dict_labels_for_L is compulsary only for emb_type = 'labels' case. It is the dictionary with all
-    # the unique concepts of L set. For each key-concept the dictionary has as value a list of labels iov 
-    # 
-    # The method returns the storing_list iteratively computed by cos3add.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method implements the analogic reasoning. 
+    It has two modes, handled by the emb_type switch: a cui mode, where the processed concepts are CUIs, and a
+    labels mode, where the processed concepts are preferred and not preferred labels.
+    
+    The L and K are list of pairs for a specific relation. The model is the gensim model of the considered
+    embedding. 
+    The logger is not compulsary and it is used for debugging and keeping track of running scripts. It is 
+    tought for background running scripts.
+    dict_labels_for_L is compulsary only for emb_type = 'labels' case. It is the dictionary with all
+    the unique concepts of L set. For each key-concept the dictionary has as value a list of labels iov 
+     
+    The method returns the storing_list iteratively computed by cos3add.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     ab = datetime.datetime.now().replace(microsecond=0)
     storing_list = defaultdict(list)
     count = 0
@@ -122,42 +120,38 @@ def analogy_compute(L_umls, K_umls, model, metrics, logger = None, dict_labels_f
     return storing_list
 
 
-def analog_comput_formula(kiov_cardin, k_umls_cardin, count, occurrences, rela, eps = 0.0001):
-    #
-    #
-    #----------------------------------------------------------------------------------------------
-    # The method implements the equation of our analogic formula.
-    #
-    # n°of occurred expected concepts[rela]/#Kiov[rela])*(#Kiov[rela]/#(K_umls[rela] \ Kiov[rela])
-    #
-    # In case k_umls_sub_iov == 0, a corrective factor epsilon of .0001 is added by default: the 
-    # case with #k_iov == #k_umls has to be boosted, not penalized.
-    #----------------------------------------------------------------------------------------------
-    #
-    #
+def analog_comput_formula(kiov_cardin, k_umls_cardin, count, occurrences, rela):
+    '''
+    ----------------------------------------------------------------------------------------------
+    The method implements the equation of our analogic formula.
+    
+    n°of occurred expected concepts[rela]/#Kiov[rela])*(#Kiov[rela]/#(K_umls[rela] \ Kiov[rela])
+    
+    In case k_umls_sub_iov == 0, a corrective factor epsilon of .0001 is added by default: the 
+    case with #k_iov == #k_umls has to be boosted, not penalized.
+    ----------------------------------------------------------------------------------------------
+    '''
     k_umls_sub_iov = k_umls_cardin - kiov_cardin
     if (occurrences == 0):
         return 0
-    result= (count/occurrences)*(kiov_cardin/(k_umls_sub_iov+eps))   
+    result= (count/occurrences)*(occurrences/(k_umls_cardin*(k_umls_cardin-1)))#*(kiov_cardin/(k_umls_sub_iov+eps))   
     return result
 
 
 def cos3add(concept_L, concept_K, model, k_most_similar):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # It is the implementation of the 3CosAdd by Mikolov, aka the analogy computation of the classic
-    # analogic relation king-man = queen-woman
-    #
-    # Example of analogic reasoning:
-    # queen - king = woman - man || L0 - L1 = K0 - K1 ; L0 + K1 - L1 = K0 || queen + man - woman = king
-    # model_g.wv.most_similar(positive=["king", "woman"], negative=["man"], topn = 5) # L0, K1  L1
-    #
-    # The method returns a list of tuples, with each tuple with the pair of L, the pair of K and a value (0 or 1)
-    # depending by the occurrence: 1 for occurrence, 0 for not occurrence.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    It is the implementation of the 3CosAdd by Mikolov, aka the analogy computation of the classic
+    analogic relation king-man = queen-woman
+    
+    Example of analogic reasoning:
+    queen - king = woman - man || L0 - L1 = K0 - K1 ; L0 + K1 - L1 = K0 || queen + man - woman = king
+    model_g.wv.most_similar(positive=["king", "woman"], negative=["man"], topn = 5) # L0, K1  L1
+    
+    The method returns a list of tuples, with each tuple with the pair of L, the pair of K and a value (0 or 1)
+    depending by the occurrence: 1 for occurrence, 0 for not occurrence.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[1]], negative=[concept_L[1]], topn=k_most_similar)))[0]
     if concept_K[0] in tmp:
         return 1
@@ -166,19 +160,17 @@ def cos3add(concept_L, concept_K, model, k_most_similar):
     
 
 def cos3add_custom_formula(dict_information, cardinality_relations, name_emb):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method gets the variable obtained with analogy_pipeline script and performs the cos3add custom formula
-    # we designed. 
-    # The information for cardinality of several sets are taken by cardinality_relations variable, previously 
-    # computed. It is a dictionary where keys are relas and values lists of tuples, where each tuple represents 
-    # an embedding.
-    #
-    # N.B. #kiov does not count the same-couple analysis. The corrective factor is +1 
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method gets the variable obtained with analogy_pipeline script and performs the cos3add custom formula
+    we designed. 
+    The information for cardinality of several sets are taken by cardinality_relations variable, previously 
+    computed. It is a dictionary where keys are relas and values lists of tuples, where each tuple represents 
+    an embedding.
+    
+    N.B. #kiov does not count the same-couple analysis. The corrective factor is +1 
+    -----------------------------------------------------------------------------------------------------------
+    '''
     dict_out = {}
     for rela in umls_tables_processing.USEFUL_RELA:
         count = sum(dict_information[list(dict_information.keys())[0]][rela]['add'])
@@ -194,18 +186,16 @@ def cos3add_custom_formula(dict_information, cardinality_relations, name_emb):
         
 
 def cos3mul(concept_L, concept_K, model, epsilon = 0.0001):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The paper Levy et al., Linguistic Regularities in Sparse and Explicit Word Representations shows the equation for 
-    # 3CosMul as the multiplicative version of 3CosAdd: 
-    # where 3CosAdd is b* - b = a* - a; b - a + *a = b*, the 3CosMul would be (b x a*) x (a^-1) ~ b*.
-    # Similar to our implementation of 3CosAdd, the implemented equation is: 
-    # L0 + K1 - L1 = K0 == b* - b + a = a*   ---->   (b* x a) x b^-1 ~ a* . 
-    # Trying, the results are equivalent in both ways.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The paper Levy et al., Linguistic Regularities in Sparse and Explicit Word Representations shows the equation for 
+    3CosMul as the multiplicative version of 3CosAdd: 
+    where 3CosAdd is b* - b = a* - a; b - a + *a = b*, the 3CosMul would be (b x a*) x (a^-1) ~ b*.
+    Similar to our implementation of 3CosAdd, the implemented equation is: 
+    L0 + K1 - L1 = K0 == b* - b + a = a*   ---->   (b* x a) x b^-1 ~ a* . 
+    Trying, the results are equivalent in both ways.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     #tmp = list(zip(*model.most_similar(positive=[concept_L[0], concept_K[1]], negative=[concept_L[1]], topn=n_Vemb_subset)))[0]
     var = ((model.similarity(concept_L[0], concept_L[1]) * model.similarity(concept_L[0], concept_K[0]))/
            (epsilon + model.similarity(concept_L[0], concept_K[1])))
@@ -218,24 +208,22 @@ def cos3mul(concept_L, concept_K, model, epsilon = 0.0001):
 
 
 def count_occurred_labels(model, seed):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method computes a count of preferred and not preferred labels inside the word 
-    # embedding model. This method is used only on word embedding models.
-    #
-    # It takes as input the gensim KeyedVectors.word2vec model and a dictionary of CUIs and the
-    # correspondent preferred and not preferred label, inside a list.
-    #
-    # It returns a dictionary with a CUI as key and a tuple as value, with first element the 
-    # correspondent label, either if it is occurred or not, and second element the count of occurred
-    # labels inside the embedding.---------FIXED
-    #
-    # It returns a dictionary with a CUI as key and a counter of the CUI's labels (preferred or not) inside the
-    # embedding.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method computes a count of preferred and not preferred labels inside the word 
+    embedding model. This method is used only on word embedding models.
+    
+    It takes as input the gensim KeyedVectors.word2vec model and a dictionary of CUIs and the
+    correspondent preferred and not preferred label, inside a list.
+    
+    It returns a dictionary with a CUI as key and a tuple as value, with first element the 
+    correspondent label, either if it is occurred or not, and second element the count of occurred
+    labels inside the embedding.---------FIXED
+    
+    It returns a dictionary with a CUI as key and a counter of the CUI's labels (preferred or not) inside the
+    embedding.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     # Starting time
     a = datetime.datetime.now().replace(microsecond=0)
     dict_ = {}
@@ -272,40 +260,36 @@ def count_occurred_labels(model, seed):
 
 
 def iov(d):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------------   
-    # The method performs a count of inside vocabulary concepts.
-    #
-    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
-    # the output of take_most_similar method.
-    #
-    # It returns an integer of elements inside the embedding vocabulary
-    #----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------------   
+    The method performs a count of inside vocabulary concepts.
+    
+    It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    the output of take_most_similar method.
+    
+    It returns an integer of elements inside the embedding vocabulary
+    ----------------------------------------------------------------------------------------------------------
+    '''
     tmp = oov(d)
     return len(d)-tmp
     
 
 def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = None, emb_type = 'cui'):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------
-    # Accessory method: it preprocesses the K and L sets, discarding the pairs with OOV elements, in 
-    # both the sets. This allows a cut of computational cost, fasting the computation of analogy.
-    #
-    # The method gets as input a list of pairs, given a relation, for L. 
-    # A list of pairs for the same relation for K set.
-    # The model of considered embedding.
-    # A logger is not compulsary: it is tought for background run on vm and for keeping track of errors.
-    # dict_labels_for_L is compulsary only for emb_type = 'labels' case. It is the dictionary with all
-    # the unique concepts of L set. For each key-concept the dictionary has as value a list of labels iov 
-    #
-    # The method returns the polished K and L sets of pairs, all iov.
-    #----------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------
+    Accessory method: it preprocesses the K and L sets, discarding the pairs with OOV elements, in 
+    both the sets. This allows a cut of computational cost, fasting the computation of analogy.
+    
+    The method gets as input a list of pairs, given a relation, for L. 
+    A list of pairs for the same relation for K set.
+    The model of considered embedding.
+    A logger is not compulsary: it is tought for background run on vm and for keeping track of errors.
+    dict_labels_for_L is compulsary only for emb_type = 'labels' case. It is the dictionary with all
+    the unique concepts of L set. For each key-concept the dictionary has as value a list of labels iov 
+    
+    The method returns the polished K and L sets of pairs, all iov.
+    ----------------------------------------------------------------------------------------------------
+    '''
     # Timer started
     ab = datetime.datetime.now().replace(microsecond=0)
     # Changing format to the two lists, K_umls and L_umls
@@ -403,33 +387,29 @@ def k_n_l_iov(L_umls_rel, K_umls_rel, model, logger = None, dict_labels_for_L = 
 
 
 def max_dcg(k_neighs, sub = 2):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------------   
-    # Normalization factor for pos and neg DCG.
-    #
-    # The only input parameter is the value of k, for weighting the position.
-    #
-    # The method returns a value: it is the max possible DCG obtainable using given k
-    #----------------------------------------------------------------------------------------------------------   
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------------   
+    Normalization factor for pos and neg DCG.
+    
+    The only input parameter is the value of k, for weighting the position.
+    
+    The method returns a value: it is the max possible DCG obtainable using given k
+    ----------------------------------------------------------------------------------------------------------   
+    '''
     return sum([1/np.math.log(i+sub,sub) for i in range(k_neighs)])
     
     
 def mod_dcgs_hit(pos, neg, tmp, seeds, k_most_similar):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # Modified Discounted Cumulative Gain equations:
-    # The first equation corresponds to the actual DCG, where the occurrence is weighted on the position
-    # The second one is the negative one.
-    #
-    # The hit version of the method corresponds to the found seed-word inside the embedding. So basically
-    # the equations are applied on the most similar occurrences, looking for them inside the seed list of words.
-    #------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    Modified Discounted Cumulative Gain equations:
+    The first equation corresponds to the actual DCG, where the occurrence is weighted on the position
+    The second one is the negative one.
+    
+    The hit version of the method corresponds to the found seed-word inside the embedding. So basically
+    the equations are applied on the most similar occurrences, looking for them inside the seed list of words.
+    ------------------------------------------------------------------------------------------------------------
+    '''
     # loop over the k_most_similar words (the list tmp)
     for l, word in enumerate(tmp):
         # Check: if the word is in the seeds list
@@ -447,17 +427,15 @@ def mod_dcgs_hit(pos, neg, tmp, seeds, k_most_similar):
 
     
 def mod_dcgs_nohit(pos, neg, k_most_similar):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The nohit version of the method corresponds to the not found seed-word inside the embedding. 
-    # In this case a row of zeros for the negative, and a row of weighted ones for the positive, is computed.
-    #
-    # Computes list of k_most_similar length, filled with 0s for the positiveDCG and with 1/log2(i+2) for 
-    # negativeDCG
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The nohit version of the method corresponds to the not found seed-word inside the embedding. 
+    In this case a row of zeros for the negative, and a row of weighted ones for the positive, is computed.
+    
+    Computes list of k_most_similar length, filled with 0s for the positiveDCG and with 1/log2(i+2) for 
+    negativeDCG
+    -----------------------------------------------------------------------------------------------------------
+    '''
     pos = [0 for i in range(k_most_similar)]
     neg = [1/np.math.log(i+2,2) for i in range(k_most_similar)]
     return pos, neg
@@ -465,15 +443,13 @@ def mod_dcgs_nohit(pos, neg, k_most_similar):
 
 
 def neg_dcg(d, normalization = False, norm_fact=1):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method performs a sum over the negative DCG values.
-    # It takes as input a list of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
-    # the output of take_most_similar method.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method performs a sum over the negative DCG values.
+    It takes as input a list of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    the output of take_most_similar method.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     a = sum([j[1] for i in list(d.values()) for j in i])
     if normalization:
         return a/(len(d)*norm_fact)
@@ -483,24 +459,22 @@ def neg_dcg(d, normalization = False, norm_fact=1):
 
     
 def occurred_labels(model, seed, k_most_similar=10):
-    #
-    #
-    #----------------------------------------------------------------------------------------------
-    # The method computes a count of preferred and not preferred labels inside the word 
-    # embedding model and applies the DCGs measures. 
-    # This method is used only on word embedding models.
-    #
-    # It represents an extension of the occurrence_words method.
-    #
-    # It takes as input the gensim KeyedVectors.word2vec model and a dictionary of CUIs and the
-    # correspondent preferred and not preferred label, inside a list. 
-    # It ONLY works with strings inside a list (or iterable objects). 
-    #
-    # It returns a dictionary with a CUI as key and as value a list of fourples (pos, neg, seed-word,
-    # OOV or k-th most similar word of the seed) 
-    #----------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------
+    The method computes a count of preferred and not preferred labels inside the word 
+    embedding model and applies the DCGs measures. 
+    This method is used only on word embedding models.
+    
+    It represents an extension of the occurrence_word method.
+    
+    It takes as input the gensim KeyedVectors.word2vec model and a dictionary of CUIs and the
+    correspondent preferred and not preferred label, inside a list. 
+    It ONLY works with strings inside a list (or iterable objects). 
+    
+    It returns a dictionary with a CUI as key and as value a list of fourples (pos, neg, seed-word,
+    OOV or k-th most similar word of the seed) 
+    ----------------------------------------------------------------------------------------------
+    '''
     # Starting time
     a = datetime.datetime.now().replace(microsecond=0)
     dict_ = {}
@@ -556,17 +530,15 @@ def occurred_labels(model, seed, k_most_similar=10):
 
 
 def occurred_concept(model, seeds, k_most_similar=10):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------------------
-    # It takes as input a gensim.model, a plain list of seeds and a k-number for the number of most similar to each
-    # seed-word. 
-    #
-    # It returns a dictionary with each seed element as key and and as value a list of fourples (pos, neg, seed-word,
-    # OOV or k-th most similar word of the seed) 
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------------------
+    It takes as input a gensim.model, a plain list of seeds and a k-number for the number of most similar to each
+    seed-word. 
+    
+    It returns a dictionary with each seed element as key and and as value a list of fourples (pos, neg, seed-word,
+    OOV or k-th most similar word of the seed) 
+    ----------------------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     d = {}
     #print(len(seeds))
@@ -578,13 +550,11 @@ def occurred_concept(model, seeds, k_most_similar=10):
 
 
 def occurrence_word(model, seeds, k=10):
-    #
-    #
-    #-------------------------------------------------------------------------------------------
-    # DEPRECATED: the old version of occurred words.
-    #-------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -------------------------------------------------------------------------------------------
+    DEPRECATED: the old version of occurred words.
+    -------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     box = []
     box_ = []
@@ -624,38 +594,34 @@ def occurrence_word(model, seeds, k=10):
 
 
 def oov(d):
-    #
-    #
-    #----------------------------------------------------------------------------------------------------------   
-    # The method performs a count of OOV concepts.
-    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
-    # the output of take_most_similar method.
-    #
-    # It returns an integer of elements out of the embedding vocabulary 
-    #----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    ----------------------------------------------------------------------------------------------------------   
+    The method performs a count of OOV concepts.
+    It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    the output of take_most_similar method.
+    
+    It returns an integer of elements out of the embedding vocabulary 
+    ----------------------------------------------------------------------------------------------------------
+    '''
     o = [1 for i in list(d.values()) if (i[0][3]=='OOV') ]
     return sum(o)
 
 
 
 def pair_direction(concept_L, concept_K, model, epsilon = 0.0001):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The paper Levy et al., Linguistic Regularities in Sparse and Explicit Word Representations formalized the
-    # equation as cos((b*-b),(a*-a)), used previously by Mikolov.
-    # This method reproduces the mathematical formalization by Levy et al.
-    #
-    # concept_L is the first pair, the couple b*-b, concept_K corresponds to the second pair, a*-a
-    # The epsilon var avoid the division by 0 in the cosine distance.
-    # The model is the embedding.
-    # 
-    # The method returns a list with cosine similarities.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The paper Levy et al., Linguistic Regularities in Sparse and Explicit Word Representations formalized the
+    equation as cos((b*-b),(a*-a)), used previously by Mikolov.
+    This method reproduces the mathematical formalization by Levy et al.
+    
+    concept_L is the first pair, the couple b*-b, concept_K corresponds to the second pair, a*-a
+    The epsilon var avoid the division by 0 in the cosine distance.
+    The model is the embedding.
+     
+    The method returns a list with cosine similarities.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     var = 1-spatial.distance.cosine((model[concept_L[0]]-model[concept_L[1]])+epsilon, 
                                     (model[concept_K[0]]-model[concept_K[1]])+epsilon)
     return var
@@ -663,15 +629,13 @@ def pair_direction(concept_L, concept_K, model, epsilon = 0.0001):
 
 
 def percentage_dcg(d, k=1):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method performs a weighted count over the positive DCG values.
-    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
-    # the output of take_most_similar method.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method performs a weighted count over the positive DCG values.
+    It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed):
+    the output of take_most_similar method.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     c = [1 if (j[0]!=0) else 0 for i in list(d.values()) for j in i ]
     #print('The normalization of percentage_dcg is: %s' % len(c))
     return sum(c)/(len(d)*k)
@@ -679,16 +643,14 @@ def percentage_dcg(d, k=1):
     
     
 def pos_dcg(d, normalization = False, norm_fact=1):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method performs a sum over the positive DCG values.
-    # It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed)
-    # and a boolean for normalization:
-    # the output of take_most_similar method.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method performs a sum over the positive DCG values.
+    It takes as input a dictionary of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed)
+    and a boolean for normalization:
+    the output of take_most_similar method.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     a = sum([j[0] for i in list(d.values()) for j in i])
     if normalization:
         return a/(len(d)*norm_fact)
@@ -697,23 +659,21 @@ def pos_dcg(d, normalization = False, norm_fact=1):
         
     
 def relation_direction(model, seed_pairs):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The following code is taken by https://github.com/rishibommasani/Contextual2Static .
-    # The method computes the first principal component given a seed of couples.
-    #
-    # Originally thought for bias direction, related to genres, races, and religions, in our case it is applied
-    # to a direction for an UMLS relationship.
-    # The two vectors from the embedding per couple of concepts/words are extracted. The difference for each couple
-    # is computed, obtaining a direction for the couple, represented by a vector.
-    # A list of "directions" is obtained: the PCA is computed on it.
-    #
-    # The method gets as input an embedding model, CUI2Vec or Word2Vec, and a list of couples.
-    # The method returns the first principal component, given the seed of couples.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The following code is taken by https://github.com/rishibommasani/Contextual2Static .
+    The method computes the first principal component given a seed of couples.
+    
+    Originally thought for bias direction, related to genres, races, and religions, in our case it is applied
+    to a direction for an UMLS relationship.
+    The two vectors from the embedding per couple of concepts/words are extracted. The difference for each couple
+    is computed, obtaining a direction for the couple, represented by a vector.
+    A list of "directions" is obtained: the PCA is computed on it.
+    
+    The method gets as input an embedding model, CUI2Vec or Word2Vec, and a list of couples.
+    The method returns the first principal component, given the seed of couples.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     a = datetime.datetime.now().replace(microsecond=0)
     diff_embeddings = [model[x] - model[y] for x,y in seed_pairs]
     X = np.array(diff_embeddings)
@@ -724,25 +684,23 @@ def relation_direction(model, seed_pairs):
         
     
 def take_most_similar(model, seed, seeds, k_most_similar=10, counter=0):
-    #
-    #
-    #-----------------------------------------------------------------------------------------------------------
-    # The method tries to perform the k_most_similar (built-in method from gensim) inside the embedding.
-    # If the seed is InsideVocabulary, the modifiedDCG algorithm is applied, computing the positive and the 
-    # negative DCG versions.
-    #
-    # If the seed looked for is OutOfVocabulary, a pair of lists full of zeros for the positive, 
-    # and weighted for position for negative, are computed.
-    #
-    # The method takes as input a gensim.model, a seed-word (or CUI), a list of seeds (for the DCG computation 
-    # check), a k-most similar value of concepts found in embedding (10 by default) and a counter (0 by default).
-    #
-    # The method returns a list of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed) and
-    # a counter of the number of tries: this works only if a counter is kept all over the methods, and fed as 
-    # input as well.
-    #-----------------------------------------------------------------------------------------------------------
-    #
-    #
+    '''
+    -----------------------------------------------------------------------------------------------------------
+    The method tries to perform the k_most_similar (built-in method from gensim) inside the embedding.
+    If the seed is InsideVocabulary, the modifiedDCG algorithm is applied, computing the positive and the 
+    negative DCG versions.
+    
+    If the seed looked for is OutOfVocabulary, a pair of lists full of zeros for the positive, 
+    and weighted for position for negative, are computed.
+    
+    The method takes as input a gensim.model, a seed-word (or CUI), a list of seeds (for the DCG computation 
+    check), a k-most similar value of concepts found in embedding (10 by default) and a counter (0 by default).
+    
+    The method returns a list of fourples (pos, neg, seed-word, OOV or k-th most similar word of the seed) and
+    a counter of the number of tries: this works only if a counter is kept all over the methods, and fed as 
+    input as well.
+    -----------------------------------------------------------------------------------------------------------
+    '''
     # Trying the seed inside the embedding
     try:
         pos = []
