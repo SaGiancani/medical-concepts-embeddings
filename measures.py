@@ -206,6 +206,32 @@ def cos3mul(concept_L, concept_K, model, epsilon = 0.0001):
     return var
 
 
+def cosine_medoid(temp):
+    '''
+    -------------------------------------------------------------------------------------
+    The method is an accessory method which provides a way to aggregate the several
+    vectors obtained with the all_labels strategy, for w2v embeddings. 
+    
+    It picks the medoid among the difference vectors for a couple of concepts.
+    Each concepts corresponds to a list of labels, and each label, in a w2v embedding
+    is represented by a vector. 
+    
+    Each one of these vectors are inside the temp list, the input of method.
+    -------------------------------------------------------------------------------------
+    '''
+    # Conversion to numpy.array
+    temp = np.array(temp).T
+    # Cosine similarity
+    d = np.array(temp).T @ np.array(temp)
+    norm = (temp * temp).sum(0, keepdims=True) ** .5
+    tempor = d / norm / norm.T
+    # Check which is the difference vector which returns the max similarity among vectors
+    index_max = np.argmax(np.sum(tempor, axis=0))
+    # The found medoid is picked
+    medoid = temp[:, index_max]
+    return medoid.tolist(), index_max
+
+
 
 def count_occurred_labels(model, seed):
     '''
@@ -456,9 +482,103 @@ def neg_dcg(d, normalization = False, norm_fact=1):
     else:
         return a
 
+    
+def new_seed_from_max(model, seed, k_most_similar = 10):
+    '''
+    ----------------------------------------------------------------------------------------------
+    This method avoids the issue of having the creation of the seed for multilabels strategy 
+    -the max_dcg heuristic- in the same loop of the occurrence measure. In that case the maxdcg was
+    computed on all the labels of all concepts, so the value were faked.
+    
+    That case returns not properly weighted posdcg value, even if the obtained seed is effectively 
+    composed by max dcg possible concepts.
+    
+    Splitting the strategy, putting the creation of the seed out of the loop, solves the problem.
+    
+    The method gets the original seed, a dictionary where keys are concepts (CUIs) and the values 
+    are the labels (preferred and not) for each concept.
+    The model is the gensim KeyedVectors.word2vec model. k_most_similar is the number of elements
+    of the cluster where the dcg is computed.
+    
+    It returns a dictionary with CUIs as keys and list of a label as values.
+    ----------------------------------------------------------------------------------------------
+    '''
+    # A new seed, with all the labels for each concept is created
+    newlist = [item for items in seed.values() for item in items]
+    new_seed = dict()
+    for k, v in zip(seed.keys(), seed.values()):
+        t = -1
+        if len(v) == 0:
+            # Data preparation for output: list of 4-tuple with the list of posDCG, negDCG, a list of 
+            # k-times duplicated seed, a list of k-times duplicated 'OOV'.
+            supp = None
+            
+        # If labels exist so compute occurrence
+        else:
+            # Cycling over the labels of the list v
+            for j in v:
+                # j is one of the labels from the list per CUI
+                most_similar_words, _ = take_most_similar(model, j, newlist, k_most_similar=k_most_similar)
+            
+                # Isolating positiveDCG values for the sum 
+                pos = [i[0] for i in most_similar_words]
+                pos_summed = sum(pos)
+
+                # If exists already a positiveDCG value more the actual in the loop, the if is skipped
+                # otherwise it is substitued 
+                if (t<pos_summed) | ((t==pos_summed)&(most_similar_words[0][3]!='OOV')):
+                    t = pos_summed
+                    supp = j
+                #print('{:s}, {:f}\n'.format(supp, t))
+                #print(str(tmp)+'\n')
+            #print('\nPicked choice: {:s}, {:f}, {:s}\n'.format(supp, t, tmp[0][3]))        
+        new_seed[k] = [supp]
+    return new_seed
+
+
+def new_seed_from_medoid(model, seed):
+    '''
+    ----------------------------------------------------------------------------------------------
+    The method implements an alternative heuristic to the max_dcg, allowing to discarding all the
+    labels and picking a representative for each concept. 
+    
+    The method gets as input a gensim.model and a seed dictionary, where keys are CUIs and 
+    values are lists of labels.
+    
+    The method returns a dictionary with a representative label for each concept: it has CUIs as
+    keys and lists of one label as values.
+    ----------------------------------------------------------------------------------------------    
+    '''
+    t_dict = dict()
+    for k, v in seed.items():
+        # Security check: if concept has no labels
+        if len(v) == 0:
+            label = None
+        # if concepts have labels
+        else:
+            tmp = list()
+            # loop over the labels
+            for j in v:
+                # Trying the seed inside the embedding
+                try:
+                    supp = model[j]
+                    tmp.append(supp)
+                except:
+                    continue
+            # if IoV compute the medoid
+            if len(tmp)>0:
+                _, index = cosine_medoid(tmp)
+                label = v[index]
+            # if OOV the first label is taken
+            else:
+                label = v[0]
+            #print(v)
+            #print(label)
+        t_dict[k] = [label]
+    return t_dict
 
     
-def occurred_labels(model, seed, k_most_similar=10):
+def occurred_labels(model, seed, k_most_similar=10, heuristic_aggregation = 'max'):
     '''
     ----------------------------------------------------------------------------------------------
     The method computes a count of preferred and not preferred labels inside the word 
@@ -470,6 +590,9 @@ def occurred_labels(model, seed, k_most_similar=10):
     It takes as input the gensim KeyedVectors.word2vec model and a dictionary of CUIs and the
     correspondent preferred and not preferred label, inside a list. 
     It ONLY works with strings inside a list (or iterable objects). 
+    A switch variable, heuristic_aggregation allows to choose the aggregation strategy used for 
+    picking the label for each CUI: you can choose among 'max', 'med' and 'ext', respectively the 
+    max_dcg strategy, the medoid strategy and the extended seed strategy. 'max' by default
     
     It returns a dictionary with a CUI as key and as value a list of fourples (pos, neg, seed-word,
     OOV or k-th most similar word of the seed) 
@@ -478,9 +601,20 @@ def occurred_labels(model, seed, k_most_similar=10):
     # Starting time
     a = datetime.datetime.now().replace(microsecond=0)
     dict_ = {}
-    new_seed = []
-    # The several lists of the CUIs are flattened into a unique list.
-    newlist = [item for items in seed.values() for item in items]
+    # In place of an enlarged seed, comprending all the labels for each concept, a seed with labels 
+    # returning max dcg are taken
+    if heuristic_aggregation == 'max':
+        print('Max aggregation strategy')
+        seed = new_seed_from_max(model, seed, k_most_similar = k_most_similar)
+        newlist = [item for items in seed.values() for item in items]
+    elif heuristic_aggregation == 'med':
+        print('Medoid aggregation strategy')
+        seed = new_seed_from_medoid(model, seed)
+        newlist = [item for items in seed.values() for item in items]    
+    elif heuristic_aggregation == 'ext':
+        print('Extended aggregation strategy')
+        newlist = [item for items in seed.values() for item in items]
+        
     # Cycling on dictionary: the keys are CUIs and the values are lists of strings (labels)
     for k, v in zip(seed.keys(), seed.values()):
         # Starting the counter of occurred labels inside the embedding
@@ -496,23 +630,23 @@ def occurred_labels(model, seed, k_most_similar=10):
                            pos, neg,
                            [seed for i in range(k_most_similar)], 
                            ['OOV' for i in range(k_most_similar)]))
-            supp = None
             
         # If labels exist so compute occurrence
         else:
             # Cycling over the labels of the list v
-            for h, j in enumerate(v):
+            for j in v:
                 # j is one of the labels from the list per CUI
                 most_similar_words, _ = take_most_similar(model, j, newlist, k_most_similar=k_most_similar)
             
                 # Isolating positiveDCG values for the sum 
                 pos = [i[0] for i in most_similar_words]
+                pos_summed = sum(pos)
 
                 # If exists already a positiveDCG value more the actual in the loop, the if is skipped
                 # otherwise it is substitued 
-                if (t<(sum(pos))) | ((t==(sum(pos)))&(most_similar_words[0][3]!='OOV')):
-                    t = sum(pos)
-                    supp = j
+                if (t<(pos_summed)) | ((t==(pos_summed))&(most_similar_words[0][3]!='OOV')):
+                    t = pos_summed
+                    #supp = j
                     tmp = most_similar_words
                 #print('{:s}, {:f}\n'.format(supp, t))
                 #print(str(tmp)+'\n')
@@ -520,11 +654,11 @@ def occurred_labels(model, seed, k_most_similar=10):
             # Storing a 4-tuple with the biggest value of posDCG, the correspondent negDCG, an array of k labels (the seed),
             # and the k-most similar words for the label, in a dictionary, using the correspondent CUI as key                 
         dict_[k] = tmp
-        new_seed.append(supp)
+        #new_seed.append(supp)
                 
     # Printing the total time
-    print(datetime.datetime.now().replace(microsecond=0)-a)
-    return dict_, new_seed
+    print('Time for occurrence measure: '+str(datetime.datetime.now().replace(microsecond=0)-a) + '\n')
+    return dict_, seed
 
 
 
@@ -552,7 +686,9 @@ def occurred_concept(model, seeds, k_most_similar=10):
 def occurrence_word(model, seeds, k=10):
     '''
     -------------------------------------------------------------------------------------------
-    DEPRECATED: the old version of occurred words.
+    The old version of occurred_labels.
+    
+    Currently used for debugging of the processed seed for textual embeddings only.
     -------------------------------------------------------------------------------------------
     '''
     a = datetime.datetime.now().replace(microsecond=0)
@@ -658,7 +794,7 @@ def pos_dcg(d, normalization = False, norm_fact=1):
         return a
         
     
-def relation_direction(model, seed_pairs):
+def relation_direction(model, seed_pairs, all_labels = False):
     '''
     -----------------------------------------------------------------------------------------------------------
     The following code is taken by https://github.com/rishibommasani/Contextual2Static .
@@ -675,7 +811,10 @@ def relation_direction(model, seed_pairs):
     -----------------------------------------------------------------------------------------------------------
     '''
     a = datetime.datetime.now().replace(microsecond=0)
-    diff_embeddings = [model[x] - model[y] for x,y in seed_pairs]
+    if all_labels:
+        diff_embeddings = seed_pairs
+    else:
+        diff_embeddings = [model[x] - model[y] for x,y in seed_pairs]
     X = np.array(diff_embeddings)
     pca = PCA(n_components=1)
     pca.fit(X)
