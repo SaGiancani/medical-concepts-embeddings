@@ -26,9 +26,17 @@ The folders are followed by executable -and not- python scripts, one for each de
 ## Installation
 
 Download this repo writing this line on your terminal:
+
 `git clone https://github.com/SaGiancani/medical-concepts-embeddings`
+
 Then create the environment med_concept_emb_env, activate and install requirements running the `setup.sh` bash script, with the following lines:
+
 `cd medical-concepts-embeddings/
+
 chmod u+x setup.sh
+
 source setup.sh`
-The scripts are coded on [gensim library](https://radimrehurek.com/gensim/) -installed with the previous lines-, that requires language models in proper formats: .txt, .bin . Download and move language models for processing in the proper subfolders, descripted before.
+
+The scripts are coded on [gensim library](https://radimrehurek.com/gensim/) -already installed with the previous lines-, that requires language models in proper formats: .txt, .bin . 
+
+Download and move language models for processing in the proper subfolders, descripted before.
