@@ -32,8 +32,8 @@ def coloring(n):
 
 def plot_analogy(dict_ = None,
                  operations = ['add', 'pair'], 
-                 cardinality_relations = utils.inputs_load('Utilities/Analogical Data/k_cardinality_per_rel'), 
-                 path = 'Utilities/Analogical Data/'):
+                 cardinality_relations = utils.inputs_load('Utilities/AnalogicalData/k_cardinality_per_rel'), 
+                 path = 'Utilities/AnalogicalData/'):
     '''
     -------------------------------------------------------------------------------------------------------
     The method provides a figure with the plots of the count normalized and factorized coming from the 

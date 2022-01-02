@@ -7,7 +7,7 @@ from gensim.models import KeyedVectors, Word2Vec
 from gensim.test.utils import datapath
 
 PATH_EMBEDDINGS = './Embeddings'
-SAVING_PATH = 'Utilities/Analogical Data/'
+SAVING_PATH = 'Utilities/AnalogicalData/'
 
 def analog_loop(path, 
                 binary_bool,
