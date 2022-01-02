@@ -7,7 +7,7 @@ from gensim.test.utils import datapath
 
 
 PATH_EMBEDDINGS = './Embeddings'
-SAVING_PATH = 'Utilities/Relatedness Data/
+SAVING_PATH = 'Utilities/RelatednessData/'
 NAME_SAVED_FILE = 'relatedness_data_'
 
 
@@ -36,7 +36,7 @@ def cardinality_embeddings():
     return cardinality_vemb
 
 
-def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False):
+def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False, aggregation = 'max'):
     '''
     -------------------------------------------------------------------------------------------------------------
     The method represents a further loop inside the relatedness loop, for the case k_most_similar = k_max 
@@ -59,9 +59,9 @@ def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False)
         Vemb = utils.extract_w2v_vocab(model)
         if type_emb[0]=='/cuis/':
             k = len(list(set(Vemb).intersection(set(seed[1].keys()))))
+            logger.info('\n k_value: %s\n', k)
             if k <=0:
                 k = 1
-
             d = measures.occurred_concept(model, seed[1].keys(), k_most_similar=k)
             big_g[name]['max_k'][seed[0]] = [measures.pos_dcg(d, 
                                                         normalization = True, 
@@ -77,9 +77,14 @@ def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False)
         elif type_emb[0]=='/words/':
             processed_seed = umls_tables_processing.discarding_labels_oov(Vemb, seed[1], all_labels = all_labels)
             k = sum([1 for k,v in processed_seed.items() if len(v)>0])
+            logger.info('\n k_value: %s\n', k)
             if k <= 0:
                 k = 1
-            d, _ = measures.occurred_labels(model, processed_seed, k_most_similar=k)
+            d, _ = measures.occurred_labels(model, 
+                                            processed_seed,
+                                            k_most_similar=k,
+                                            heuristic_aggregation = aggregation)
+
             big_g[name]['max_k'][seed[0]] = [measures.pos_dcg(d, 
                                                               normalization = True,
                                                               norm_fact = measures.max_dcg(k)),
@@ -102,7 +107,7 @@ def max_ks_loop(big_g, seeds, type_emb, model, name, logger, all_labels = False)
     return big_g
 
 
-def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch, all_labels = False):
+def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch, all_labels = False, aggregation = 'max'):
     '''
     -------------------------------------------------------------------------------------------------------------
     The method implements the logic for relatedness and occurrence experimentation. It is splitted in two blocks:
@@ -141,7 +146,10 @@ def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch, all_labels = Fa
                     elif type_emb[0]=='/words/':
                         Vemb = utils.extract_w2v_vocab(model)
                         processed_seed = umls_tables_processing.discarding_labels_oov(Vemb, seed[1], all_labels = all_labels)
-                        d, new_seed = measures.occurred_labels(model, processed_seed, k_most_similar=k)
+                        d, new_seed = measures.occurred_labels(model, 
+                                                               processed_seed,
+                                                               k_most_similar=k,
+                                                               heuristic_aggregation = aggregation)
                         big_g[name][k][seed[0]] = [measures.pos_dcg(d, normalization = True, norm_fact = measures.max_dcg(k)),
                                                    measures.neg_dcg(d, normalization = True, norm_fact = measures.max_dcg(k)),
                                                    measures.percentage_dcg(d, k=k),
@@ -160,12 +168,19 @@ def regular_ks_loop(embeddings, ks, seeds, logger, max_k_switch, all_labels = Fa
                                 big_g[name][k][seed[0]][5])
                     
             if max_k_switch and (i == len(ks)-1):
-                big_g = max_ks_loop(big_g, seeds, type_emb, model, name, logger)
+                big_g = max_ks_loop(big_g, 
+                                    seeds,
+                                    type_emb,
+                                    model,
+                                    name,
+                                    logger,
+                                    all_labels = all_labels,
+                                    aggregation = aggregation)
                     
     logger.info('Time for relatedness pipeline computation is: %s', str(datetime.datetime.now().replace(microsecond=0)-a))
     return big_g
 
-def relatedness_pipeline(logger, all_labels, ks, embedding_type, seed_type, max_k):
+def relatedness_pipeline(logger, all_labels, ks, embedding_type, seed_type, max_k, aggregation):
     '''
     -------------------------------------------------------------------------------------------------------------
     It is an accessory method which allows the preparation of utility variables. The picked choices performed
@@ -220,13 +235,13 @@ def relatedness_pipeline(logger, all_labels, ks, embedding_type, seed_type, max_
         embeddings.append(labels)
 
     
-    big_g = regular_ks_loop(embeddings, ks, seeds, logger, max_k)
+    big_g = regular_ks_loop(embeddings, ks, seeds, logger, max_k, all_labels = all_labels, aggregation = aggregation)
                         
     
     if all_labels:
-        utils.inputs_save(big_g, SAVING_PATH + NAME_SAVED_FILE + 'all_lab'+str(datetime.datetime.now()))
+        utils.inputs_save(big_g, SAVING_PATH + NAME_SAVED_FILE + '_' + aggregation+'_all_lab'+str(datetime.datetime.now()))
     else:
-        utils.inputs_save(big_g, SAVING_PATH + NAME_SAVED_FILE + 'onlypreflab'+str(datetime.datetime.now()))
+        utils.inputs_save(big_g, SAVING_PATH + NAME_SAVED_FILE +'_onlypreflab'+str(datetime.datetime.now()))
     
     logger.info('Data stored correctly!')
     
@@ -271,6 +286,13 @@ if __name__ == '__main__':
                         default = False,
                         required=False,
                         help='Max K pipeline')    
+    
+    parser.add_argument('--h',
+                        dest='aggregation',
+                        type=str,
+                        default = 'max',
+                        required=False,
+                        help='The type of analyzed embedding: it could be "ext", "max", "med"')
         
     args = parser.parse_args()
     print(args)
@@ -280,7 +302,8 @@ if __name__ == '__main__':
     assert args.embedding_type in ['both', 'cuis', 'words'], "Insert a string like 'both', 'cuis', or 'words'"    
     # Seed type
     assert args.seed_type in ['all', 'union', 'rel', 'paper'], "Insert a string like 'all', 'union', 'rel', or 'paper'" 
-    
+    # Strategy for label picking
+    assert args.aggregation in ['max', 'ext', 'med'], "Pick one among 'max', 'ext', 'med'" 
     # Start time
     start_time = datetime.datetime.now().replace(microsecond=0)
 
