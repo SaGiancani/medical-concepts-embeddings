@@ -31,11 +31,11 @@ Download this repo writing this line on your terminal:
 
 Then create the environment med_concept_emb_env, activate and install requirements running the `setup.sh` bash script, with the following lines:
 
-`cd medical-concepts-embeddings/
+`cd medical-concepts-embeddings/`
 
-chmod u+x setup.sh
+`chmod u+x setup.sh`
 
-source setup.sh`
+`source setup.sh`
 
 The scripts are coded on [gensim library](https://radimrehurek.com/gensim/) -already installed with the previous lines-, that requires language models in proper formats: .txt, .bin . 
 
