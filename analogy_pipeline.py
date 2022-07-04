@@ -324,14 +324,14 @@ def processing_analog_pipe_outcome(operations = ['add'],
                     kiov_cardin = cardinality_relations[rela][name_emb]
                     k_umls_cardin = cardinality_relations[rela]['K wor']
                     if all_:
-                        dict_out[operation][rela] = {'ratio': measures.analog_comput_formula(kiov_cardin, 
+                        dict_out[operation][rela] = {'Mar': measures.analog_comput_formula(kiov_cardin, 
                                                                                   k_umls_cardin,
                                                                                   count,
                                                                                   occurrences,
                                                                                   rela),
-                                                     'count': count, 
-                                                     '|K|(|K|-1)': occurrences,
-                                                     '|K|': kiov_cardin,
+                                                     'AR': count, 
+                                                     #'|IV|(|IV|-1)': occurrences,
+                                                     '|IV|': kiov_cardin,
                                                      '|W|': k_umls_cardin}
                     else:
                         dict_out[operation][rela] ={'ratio': measures.analog_comput_formula(kiov_cardin, 
